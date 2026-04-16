@@ -1,0 +1,21 @@
+.vscode/
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info
+dist
+build
+*.egg
+*.log
+*.env
+*/*.pytest_cache
+*/*.mypy_cache
+*/*.ruff_cache
+
+# Test artifacts
+.coverage
+*.db
+
+# Claude Code settings (user-specific)
+.claude/

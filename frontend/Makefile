@@ -10,4 +10,4 @@ lint:
 	npx eslint src/ --max-warnings 0
 
 test:
-	npx vitest run --coverage
+	npx vitest run

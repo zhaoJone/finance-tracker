@@ -12,18 +12,18 @@
 4. 查看已有代码，理解现有实现，不要重复造轮子
 
 ## 后端层级规则（单向依赖，不可违反）
-types/ → repository/ → service/ → api/
+schemas/ → repository/ → service/ → api/
 
-- types/：Pydantic 模型，纯数据结构，零依赖
-- repository/：数据库操作，只能 import types/
-- service/：业务逻辑，只能 import types/ 和 repository/
+- schemas/：Pydantic 模型，纯数据结构，零依赖
+- repository/：数据库操作，只能 import schemas/
+- service/：业务逻辑，只能 import schemas/ 和 repository/
 - api/：FastAPI 路由，可以 import 所有层
 
 ## 前端层级规则
-types/ → hooks/ → components/ → pages/
+schemas/ → hooks/ → components/ → pages/
 
-- types/：TypeScript interface，零依赖
-- hooks/：数据获取逻辑（React Query），只能 import types/
+- schemas/：TypeScript interface，零依赖
+- hooks/：数据获取逻辑（React Query），只能 import schemas/
 - components/ui/：纯展示组件，无业务逻辑
 - components/features/：功能组件，可以 import hooks/ 和 ui/
 - pages/：页面组合，可以 import 所有
@@ -45,3 +45,13 @@ types/ → hooks/ → components/ → pages/
 
 ## 接到任务时的标准流程
 研究（读文档）→ 制定计划（写在 docs/design.md 里）→ 实现 → 验证 → 更新质量文档
+
+## 操作授权
+
+你被授权在本项目范围内自主完成以下操作，无需每步确认：
+- 创建、读取、修改 backend/ 和 frontend/ 下的任何文件
+- 在 backend/ 目录运行 make check、pytest、mypy、ruff
+- 在 frontend/ 目录运行 npm 相关命令
+- 读取 docs/ 下所有文档
+
+每次任务只需在**开始前**和**完成后**向我汇报，中间步骤自主执行。

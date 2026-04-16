@@ -5,7 +5,7 @@
 import ast, sys
 from pathlib import Path
 
-LAYERS = ["types", "repository", "service", "api"]
+LAYERS = ["schemas", "repository", "service", "api"]
 
 def layer_of(path: Path) -> str | None:
     for layer in LAYERS:
