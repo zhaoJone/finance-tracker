@@ -165,6 +165,91 @@ class TestCategoriesAPI:
         assert len(json["data"]["expense"]) == 1
         assert json["data"]["expense"][0]["name"] == "Food"
 
+    def test_create_category(self, client: TestClient) -> None:
+        """Should create a new category."""
+        response = client.post("/api/categories", json={
+            "name": "Transport",
+            "color": "#2196F3",
+            "type": "expense",
+        })
+        assert response.status_code == 200
+        json = response.json()
+        assert json["message"] == "Category created"
+        assert json["data"]["name"] == "Transport"
+        assert json["data"]["color"] == "#2196F3"
+        assert json["data"]["type"] == "expense"
+
+    def test_update_category(self, client: TestClient) -> None:
+        """Should update an existing category."""
+        cat_id = str(uuid4())
+        TestDB.seed(
+            "INSERT INTO categories (id, name, color, type) VALUES (?, ?, ?, ?)",
+            (cat_id, "Food", "#FF9800", "expense"),
+        )
+
+        response = client.put(f"/api/categories/{cat_id}", json={
+            "name": "Food v2",
+            "color": "#FF5722",
+        })
+        assert response.status_code == 200
+        json = response.json()
+        assert json["message"] == "Category updated"
+        assert json["data"]["name"] == "Food v2"
+        assert json["data"]["color"] == "#FF5722"
+
+    def test_update_category_not_found(self, client: TestClient) -> None:
+        """Should return 404 when updating non-existent category."""
+        fake_id = str(uuid4())
+        response = client.put(f"/api/categories/{fake_id}", json={
+            "name": "Test",
+        })
+        assert response.status_code == 404
+        json = response.json()
+        assert json["error"] == "Not found"
+        assert json["code"] == "CATEGORY_NOT_FOUND"
+
+    def test_delete_category(self, client: TestClient) -> None:
+        """Should delete an existing category."""
+        cat_id = str(uuid4())
+        TestDB.seed(
+            "INSERT INTO categories (id, name, color, type) VALUES (?, ?, ?, ?)",
+            (cat_id, "Food", "#FF9800", "expense"),
+        )
+
+        response = client.delete(f"/api/categories/{cat_id}")
+        assert response.status_code == 200
+        json = response.json()
+        assert json["message"] == "Category deleted"
+        assert json["data"]["id"] == cat_id
+
+    def test_delete_category_not_found(self, client: TestClient) -> None:
+        """Should return 404 when deleting non-existent category."""
+        fake_id = str(uuid4())
+        response = client.delete(f"/api/categories/{fake_id}")
+        assert response.status_code == 404
+        json = response.json()
+        assert json["error"] == "Not found"
+        assert json["code"] == "CATEGORY_NOT_FOUND"
+
+    def test_delete_category_with_linked_transactions(self, client: TestClient) -> None:
+        """Should return 409 when deleting category with linked transactions."""
+        cat_id = str(uuid4())
+        now = datetime.utcnow().isoformat()
+        TestDB.seed(
+            "INSERT INTO categories (id, name, color, type) VALUES (?, ?, ?, ?)",
+            (cat_id, "Food", "#FF9800", "expense"),
+        )
+        TestDB.seed(
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-15", "expense", now),
+        )
+
+        response = client.delete(f"/api/categories/{cat_id}")
+        assert response.status_code == 409
+        json = response.json()
+        assert json["error"] == "Conflict"
+        assert json["code"] == "CATEGORY_HAS_TRANSACTIONS"
+
 
 class TestTransactionsAPI:
     """Tests for transaction endpoints."""
