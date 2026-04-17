@@ -37,21 +37,71 @@ schemas/ → hooks/ → components/ → pages/
 - 禁止在 repository 层写业务逻辑
 - 禁止在 component 层直接 fetch，必须通过 hooks/
 
-## 完成任务后必须做的事
-1. 运行 make check（后端）和 make frontend-check（前端）
-2. 确认全部通过后才算完成
-3. 更新 docs/quality.md 对应模块的状态
-4. 如果新增了 API 端点，更新 docs/api.md
+## 完整任务交付流程（必须严格遵守，不得跳过）
+
+### Step 1：本地验证
+```bash
+cd backend && make check
+cd ../frontend && make frontend-check
+```
+两者都必须通过，否则继续修复，不得进入下一步。
+
+### Step 2：更新文档
+- 更新 docs/quality.md 对应模块的状态
+- 如果新增了 API 端点，更新 docs/api.md
+- 在 docs/design.md 记录本次实现的关键决策
+
+### Step 3：提交代码
+```bash
+git add -A
+git commit -m "feat: <一句话描述本次任务内容>"
+git push origin main
+```
+
+### Step 4：监控 CI 直到结果明确
+```bash
+# 等待 CI 启动
+sleep 15
+
+# 查看最新运行状态
+gh run list --limit 1
+
+# 实时等待并显示结果
+gh run watch
+```
+
+### Step 5：处理 CI 结果
+
+**CI 通过时：**
+向我汇报，格式如下：
+```
+✅ 任务完成
+本地检查：通过
+CI 状态：通过
+CI 链接：https://github.com/<repo>/actions/runs/<id>
+```
+
+**CI 失败时：**
+```bash
+# 获取失败日志
+gh run view --log-failed
+```
+- 分析第一个 ERROR（忽略后续连锁错误）
+- 本地复现并修复
+- 重新从 Step 1 开始，直到 CI 绿色
+- 不得在 CI 失败状态下向我汇报完成
+- 严禁通过降低覆盖率要求或跳过测试来让 CI 通过
 
 ## 接到任务时的标准流程
-研究（读文档）→ 制定计划（写在 docs/design.md 里）→ 实现 → 验证 → 更新质量文档
+研究（读文档）→ 制定计划（写在 docs/design.md）→ 实现 → 执行完整交付流程
 
 ## 操作授权
-
 你被授权在本项目范围内自主完成以下操作，无需每步确认：
 - 创建、读取、修改 backend/ 和 frontend/ 下的任何文件
 - 在 backend/ 目录运行 make check、pytest、mypy、ruff
 - 在 frontend/ 目录运行 npm 相关命令
 - 读取 docs/ 下所有文档
+- 运行 git add、git commit、git push
+- 运行 gh run list、gh run watch、gh run view
 
 每次任务只需在**开始前**和**完成后**向我汇报，中间步骤自主执行。

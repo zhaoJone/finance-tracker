@@ -1,0 +1,40 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: finance-tracker-backend:latest
+    container_name: finance-tracker-backend
+    volumes:
+      - ./data:/app/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: finance-tracker-frontend:latest
+    container_name: finance-tracker-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  data:

@@ -20,9 +20,9 @@ from src.schemas import Transaction
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
 
-async def get_db() -> Any:
+async def get_db(db_path: str = "/app/data/finance.db") -> Any:
     """Create and yield an async SQLite connection."""
-    db = await aiosqlite.connect(":memory:")
+    db = await aiosqlite.connect(db_path)
     db.row_factory = aiosqlite.Row
     try:
         yield db
