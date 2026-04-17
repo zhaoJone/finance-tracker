@@ -10,15 +10,23 @@ export interface TransactionListProps {
 
 function formatAmount(amount: number, type: "income" | "expense"): string {
   const formatted = (amount / 100).toFixed(2);
-  return type === "income" ? `+$${formatted}` : `-$${formatted}`;
+  return type === "income" ? `+¥${formatted}` : `-¥${formatted}`;
 }
 
 function getCategoryName(categoryId: string, categories: Category[]): string {
-  return categories.find((c) => c.id === categoryId)?.name ?? "Unknown";
+  return categories.find((c) => c.id === categoryId)?.name ?? "未知";
 }
 
 function getCategoryColor(categoryId: string, categories: Category[]): string {
   return categories.find((c) => c.id === categoryId)?.color ?? "#9CA3AF";
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}年${month}月${day}日`;
 }
 
 export function TransactionList({
@@ -30,7 +38,7 @@ export function TransactionList({
   if (transactions.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        No transactions yet
+        暂无交易记录
       </div>
     );
   }
@@ -58,14 +66,14 @@ export function TransactionList({
             <Badge variant={tx.type === "income" ? "success" : "error"}>
               {formatAmount(tx.amount, tx.type)}
             </Badge>
-            <span className="text-xs text-gray-400">{tx.date}</span>
+            <span className="text-xs text-gray-400">{formatDate(tx.date)}</span>
             <div className="flex gap-1">
               {onEdit && (
                 <button
                   onClick={() => onEdit(tx)}
                   className="p-1 text-gray-400 hover:text-blue-600"
                 >
-                  Edit
+                  编辑
                 </button>
               )}
               {onDelete && (
@@ -73,7 +81,7 @@ export function TransactionList({
                   onClick={() => onDelete(tx.id)}
                   className="p-1 text-gray-400 hover:text-red-600"
                 >
-                  Delete
+                  删除
                 </button>
               )}
             </div>

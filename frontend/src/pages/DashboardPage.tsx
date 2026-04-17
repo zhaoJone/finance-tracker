@@ -2,6 +2,10 @@ import { useCategoryStats, useMonthlyStats } from "@/hooks";
 import { CategoryStats, MonthlyChart } from "@/components/features";
 import { useMemo } from "react";
 
+function formatCurrency(amount: number): string {
+  return `¥${amount.toFixed(2)}`;
+}
+
 export function DashboardPage() {
   const now = new Date();
   const { data: monthlyData } = useMonthlyStats({ year: now.getFullYear(), month: now.getMonth() + 1 });
@@ -19,22 +23,22 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-gray-900">仪表盘</h1>
 
       {currentMonthData && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-500">Income</p>
-            <p className="text-2xl font-bold text-green-600">${currentMonthData.income.toFixed(2)}</p>
+            <p className="text-sm text-gray-500">收入</p>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(currentMonthData.income)}</p>
           </div>
           <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-500">Expense</p>
-            <p className="text-2xl font-bold text-red-600">${currentMonthData.expense.toFixed(2)}</p>
+            <p className="text-sm text-gray-500">支出</p>
+            <p className="text-2xl font-bold text-red-600">{formatCurrency(currentMonthData.expense)}</p>
           </div>
           <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-500">Balance</p>
+            <p className="text-sm text-gray-500">余额</p>
             <p className={`text-2xl font-bold ${currentMonthData.balance >= 0 ? "text-blue-600" : "text-red-600"}`}>
-              ${currentMonthData.balance.toFixed(2)}
+              {formatCurrency(currentMonthData.balance)}
             </p>
           </div>
         </div>

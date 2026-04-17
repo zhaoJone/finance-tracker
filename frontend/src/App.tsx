@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import { DashboardPage, TransactionsPage } from "@/pages";
+import { DashboardPage, TransactionsPage, CategoriesPage } from "@/pages";
 
 function App() {
   return (
@@ -12,13 +12,19 @@ function App() {
                 to="/"
                 className="flex items-center text-sm font-medium text-gray-900"
               >
-                Dashboard
+                仪表盘
               </Link>
               <Link
                 to="/transactions"
                 className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900"
               >
-                Transactions
+                交易记录
+              </Link>
+              <Link
+                to="/categories"
+                className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900"
+              >
+                分类管理
               </Link>
             </div>
           </div>
@@ -27,6 +33,7 @@ function App() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
           </Routes>
         </main>
       </div>

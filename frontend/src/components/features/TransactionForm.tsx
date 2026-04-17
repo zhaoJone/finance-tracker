@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Category, TransactionCreate, Transaction } from "@/schemas";
 import { Button, Input, Select } from "@/components/ui";
 
@@ -23,10 +24,24 @@ export function TransactionForm({
   const [date, setDate] = useState(initialData?.date ?? new Date().toISOString().split("T")[0]);
   const [type, setType] = useState<"income" | "expense">(initialData?.type ?? "expense");
 
+  const navigate = useNavigate();
   const filteredCategories = categories.filter((c) => c.type === type);
+
+  const handleCategoryChange = (value: string) => {
+    if (value === "__manage__") {
+      navigate("/categories");
+      return;
+    }
+    setCategoryId(value);
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+
+    if (categoryId === "__manage__") {
+      navigate("/categories");
+      return;
+    }
 
     const amountInCents = Math.round(parseFloat(amount) * 100);
     if (isNaN(amountInCents) || amountInCents <= 0) return;
@@ -44,19 +59,19 @@ export function TransactionForm({
     <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded-lg border border-gray-200">
       <div className="grid grid-cols-2 gap-4">
         <Select
-          label="Type"
+          label="类型"
           value={type}
           onChange={(e) => {
             setType(e.target.value as "income" | "expense");
             setCategoryId("");
           }}
           options={[
-            { value: "expense", label: "Expense" },
-            { value: "income", label: "Income" },
+            { value: "expense", label: "支出" },
+            { value: "income", label: "收入" },
           ]}
         />
         <Input
-          label="Amount"
+          label="金额"
           type="number"
           step="0.01"
           min="0"
@@ -67,16 +82,21 @@ export function TransactionForm({
         />
       </div>
 
-      <Select
-        label="Category"
-        value={categoryId}
-        onChange={(e) => setCategoryId(e.target.value)}
-        options={filteredCategories.map((c) => ({ value: c.id, label: c.name }))}
-        required
-      />
+      <div>
+        <Select
+          label="分类"
+          value={categoryId}
+          onChange={(e) => handleCategoryChange(e.target.value)}
+          options={[
+            ...filteredCategories.map((c) => ({ value: c.id, label: c.name })),
+            { value: "__manage__", label: "+ 管理分类" },
+          ]}
+          required
+        />
+      </div>
 
       <Input
-        label="Date"
+        label="日期"
         type="date"
         value={date}
         onChange={(e) => setDate(e.target.value)}
@@ -84,20 +104,20 @@ export function TransactionForm({
       />
 
       <Input
-        label="Note"
+        label="备注"
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="Optional note"
+        placeholder="选填"
       />
 
       <div className="flex gap-2 justify-end">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+            取消
           </Button>
         )}
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Saving..." : initialData ? "Update" : "Create"}
+        <Button type="submit" disabled={isLoading || !categoryId || categoryId === "__manage__"}>
+          {isLoading ? "保存中..." : initialData ? "更新" : "创建"}
         </Button>
       </div>
     </form>

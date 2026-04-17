@@ -3,37 +3,40 @@ Tests for CategoryRepository.
 """
 from uuid import uuid4
 
-import aiosqlite
 import pytest
 import pytest_asyncio
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
 from src.repository.category import CategoryRepository
+from src.repository.models import Base
 from src.schemas import Category
 
 
 @pytest_asyncio.fixture
-async def db() -> aiosqlite.Connection:
-    """Create an in-memory SQLite database with schema."""
-    conn = await aiosqlite.connect(":memory:")
-    conn.row_factory = aiosqlite.Row
-    await conn.execute(
-        """
-        CREATE TABLE categories (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            color TEXT NOT NULL,
-            type TEXT NOT NULL
-        )
-        """
+async def session() -> AsyncSession:
+    """Create an in-memory SQLite database with SQLAlchemy."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
-    await conn.commit()
-    yield conn
-    await conn.close()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    factory = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    async with factory() as sess:
+        yield sess
+    await engine.dispose()
 
 
 @pytest.fixture
-def repo(db: aiosqlite.Connection) -> CategoryRepository:
-    return CategoryRepository(db)
+def repo(session: AsyncSession) -> CategoryRepository:
+    return CategoryRepository(session)
 
 
 def make_category(

@@ -2,40 +2,30 @@
 Transaction API routes.
 """
 from datetime import datetime
+from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Query
-from typing import Any
-
-import aiosqlite
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.responses import error_response, success_response
 from src.api.schemas import (
     TransactionCreate,
     TransactionUpdate,
 )
+from src.config.database import get_db
 from src.repository import CategoryRepository, TransactionRepository
 from src.schemas import Transaction
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
 
-async def get_db(db_path: str = "/app/data/finance.db") -> Any:
-    """Create and yield an async SQLite connection."""
-    db = await aiosqlite.connect(db_path)
-    db.row_factory = aiosqlite.Row
-    try:
-        yield db
-    finally:
-        await db.close()
-
-
-async def get_tx_repo(db: Any = Depends(get_db)) -> TransactionRepository:
+async def get_tx_repo(db: AsyncSession = Depends(get_db)) -> TransactionRepository:
     """Dependency injection for TransactionRepository."""
     return TransactionRepository(db)
 
 
-async def get_category_repo(db: Any = Depends(get_db)) -> CategoryRepository:
+async def get_category_repo(db: AsyncSession = Depends(get_db)) -> CategoryRepository:
     """Dependency injection for CategoryRepository."""
     return CategoryRepository(db)
 

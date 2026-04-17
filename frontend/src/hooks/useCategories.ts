@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Category } from "@/schemas/category";
 
 interface ApiResponse<T> {
@@ -6,10 +6,17 @@ interface ApiResponse<T> {
   message: string;
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
+interface CategoriesResponse {
+  income: Category[];
+  expense: Category[];
+}
+
+async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
+      ...options?.headers,
     },
   });
 
@@ -23,8 +30,52 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 export function useCategories() {
-  return useQuery<Category[]>({
+  return useQuery<CategoriesResponse>({
     queryKey: ["categories"],
-    queryFn: () => fetchJson<Category[]>("/api/categories"),
+    queryFn: () => fetchJson<CategoriesResponse>("/api/categories"),
+  });
+}
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { name: string; color: string; type: "income" | "expense" }) =>
+      fetchJson<Category>("/api/categories", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+}
+
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; name?: string; color?: string }) =>
+      fetchJson<Category>(`/api/categories/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchJson<{ id: string }>(`/api/categories/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
   });
 }

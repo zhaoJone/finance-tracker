@@ -5,28 +5,17 @@ from datetime import date as date_type
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
-import aiosqlite
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.responses import success_response
+from src.config.database import get_db
 from src.repository import CategoryRepository, TransactionRepository
 from src.service import TransactionService
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
 
 
-async def get_db() -> Any:
-    """Create and yield an async SQLite connection."""
-    db = await aiosqlite.connect(":memory:")
-    db.row_factory = aiosqlite.Row
-    try:
-        yield db
-    finally:
-        await db.close()
-
-
-async def get_service(
-    db: Any = Depends(get_db),
-) -> TransactionService:
+async def get_service(db: AsyncSession = Depends(get_db)) -> TransactionService:
     """Dependency injection for TransactionService."""
     tx_repo = TransactionRepository(db)
     cat_repo = CategoryRepository(db)

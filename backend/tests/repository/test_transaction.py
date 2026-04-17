@@ -4,46 +4,58 @@ Tests for TransactionRepository.
 from datetime import date, datetime
 from uuid import uuid4
 
-import aiosqlite
 import pytest
 import pytest_asyncio
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
+from src.repository.models import Base, CategoryTable
 from src.repository.transaction import TransactionRepository
 from src.schemas import Transaction
 
 
 @pytest_asyncio.fixture
-async def db() -> aiosqlite.Connection:
-    """Create an in-memory SQLite database with schema."""
-    conn = await aiosqlite.connect(":memory:")
-    conn.row_factory = aiosqlite.Row
-    await conn.execute(
-        """
-        CREATE TABLE transactions (
-            id TEXT PRIMARY KEY,
-            amount INTEGER NOT NULL,
-            category_id TEXT NOT NULL,
-            note TEXT NOT NULL DEFAULT '',
-            date TEXT NOT NULL,
-            type TEXT NOT NULL,
-            created_at TEXT NOT NULL
-        )
-        """
+async def session() -> AsyncSession:
+    """Create an in-memory SQLite database with SQLAlchemy."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
-    await conn.commit()
-    yield conn
-    await conn.close()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    factory = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    async with factory() as sess:
+        # Create a default category for tests
+        cat = CategoryTable(
+            id=str(uuid4()),
+            name="Test Category",
+            color="#FF5733",
+            type="expense",
+        )
+        sess.add(cat)
+        await sess.commit()
+        yield sess
+    await engine.dispose()
 
 
 @pytest.fixture
-def repo(db: aiosqlite.Connection) -> TransactionRepository:
-    return TransactionRepository(db)
+def repo(session: AsyncSession) -> TransactionRepository:
+    return TransactionRepository(session)
 
 
 def make_tx(
     override: dict | None = None,
+    cat_id: str | None = None,
 ) -> Transaction:
     now = datetime(2026, 1, 1, 12, 0, 0)
+    if cat_id is None:
+        cat_id = str(uuid4())
     tx = Transaction(
         id=uuid4(),
         amount=1000,

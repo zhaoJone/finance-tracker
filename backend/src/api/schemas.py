@@ -35,3 +35,18 @@ class TransactionFilter(BaseModel):
     end_date: Optional[date] = None
     category_id: Optional[UUID] = None
     type: Optional[Literal["income", "expense"]] = None
+
+
+class CategoryCreate(BaseModel):
+    """Request body for creating a category."""
+
+    name: str = Field(..., min_length=1, max_length=10)
+    color: str = Field(..., description="Hex color code, e.g. #FF5733")
+    type: Literal["income", "expense"]
+
+
+class CategoryUpdate(BaseModel):
+    """Request body for updating a category."""
+
+    name: Optional[str] = Field(None, min_length=1, max_length=10)
+    color: Optional[str] = None

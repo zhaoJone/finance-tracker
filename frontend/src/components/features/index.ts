@@ -9,3 +9,6 @@ export type { CategoryStatsProps } from "./CategoryStats";
 
 export { MonthlyChart } from "./MonthlyChart";
 export type { MonthlyChartProps } from "./MonthlyChart";
+
+export { CategoryForm } from "./CategoryForm";
+export type { CategoryFormProps } from "./CategoryForm";

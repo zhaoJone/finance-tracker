@@ -2,44 +2,20 @@
 FastAPI application entry point.
 """
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import AsyncGenerator
 
-import aiosqlite
 from fastapi import FastAPI
 
 from src.api.categories import router as categories_router
 from src.api.stats import router as stats_router
 from src.api.transactions import router as transactions_router
+from src.config.migrations import upgrade_head
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Initialize database on startup."""
-    db_path = Path("/app/data/finance.db")
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    async with aiosqlite.connect(db_path) as db:
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS transactions (
-                id TEXT PRIMARY KEY,
-                amount INTEGER NOT NULL,
-                category_id TEXT NOT NULL,
-                note TEXT,
-                date TEXT NOT NULL,
-                type TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            )
-        """)
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS categories (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                color TEXT NOT NULL,
-                icon TEXT NOT NULL,
-                type TEXT NOT NULL
-            )
-        """)
-        await db.commit()
+    """Run migrations on startup."""
+    upgrade_head()
     yield
 
 

@@ -31,8 +31,7 @@ USER appuser
 ENV PATH=/home/appuser/.local/bin:$PATH
 ENV PYTHONPATH=/app
 
-# Mount volume for SQLite persistence
-VOLUME ["/app/data"]
+# No volume needed - data is in PostgreSQL
 
 EXPOSE 8000
 

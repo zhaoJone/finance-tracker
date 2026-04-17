@@ -1,4 +1,4 @@
-.PHONY: check lint typecheck test install
+.PHONY: check lint typecheck test install migrate migrate-new migrate-down migrate-history
 
 install:
 	pip install -e ".[dev]"
@@ -19,3 +19,16 @@ typecheck:
 
 test:
 	pytest tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=80
+
+migrate:
+	alembic upgrade head
+
+migrate-new:
+	@if [ -z "$(msg)" ]; then echo "Usage: make migrate-new msg='description'"; exit 1; fi
+	alembic revision --autogenerate -m "$(msg)"
+
+migrate-down:
+	alembic downgrade -1
+
+migrate-history:
+	alembic history

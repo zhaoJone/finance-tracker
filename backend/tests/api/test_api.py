@@ -1,114 +1,135 @@
 """
 Tests for API routes using TestClient.
 """
-import asyncio
+import os
+import tempfile
 import sqlite3
 from datetime import datetime
-from pathlib import Path
 from uuid import uuid4
 
-import aiosqlite
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
-from src.api.categories import router as categories_router
-from src.api.stats import router as stats_router
-from src.api.transactions import router as transactions_router
+from src.repository.models import Base
 
 
 class TestDB:
-    """Shared test database connection using aiosqlite for app queries."""
+    """Shared test database using SQLAlchemy async with SQLite file."""
 
-    _conn: aiosqlite.Connection | None = None
+    _engine = None
+    _session_factory = None
     _sync_conn: sqlite3.Connection | None = None
-    _db_path: Path | None = None
+    _db_path: str | None = None
 
     @classmethod
-    async def get_conn(cls) -> aiosqlite.Connection:
-        """Get or create the async connection for the app."""
-        if cls._conn is None:
-            cls._db_path = Path(__file__).parent.parent.parent / "test.db"
-            if cls._db_path.exists():
-                cls._db_path.unlink()
-            cls._conn = await aiosqlite.connect(str(cls._db_path))
-            cls._conn.row_factory = aiosqlite.Row
-            await cls._conn.execute("""
-                CREATE TABLE IF NOT EXISTS transactions (
-                    id TEXT PRIMARY KEY,
-                    amount INTEGER NOT NULL,
-                    category_id TEXT NOT NULL,
-                    note TEXT NOT NULL DEFAULT '',
-                    date TEXT NOT NULL,
-                    type TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                )
-            """)
-            await cls._conn.execute("""
-                CREATE TABLE IF NOT EXISTS categories (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    color TEXT NOT NULL,
-                    type TEXT NOT NULL
-                )
-            """)
-            await cls._conn.commit()
-        return cls._conn
+    def get_db_path(cls) -> str:
+        """Get or create temp database file path."""
+        if cls._db_path is None:
+            fd, cls._db_path = tempfile.mkstemp(suffix=".db")
+            os.close(fd)
+        return cls._db_path
 
     @classmethod
-    def _get_sync_conn(cls) -> sqlite3.Connection:
-        """Get or create a synchronous connection for test seeding."""
+    def get_engine(cls):
+        """Get or create the async engine."""
+        if cls._engine is None:
+            db_path = cls.get_db_path()
+            cls._engine = create_async_engine(
+                f"sqlite+aiosqlite:///{db_path}",
+                connect_args={"check_same_thread": False},
+            )
+        return cls._engine
+
+    @classmethod
+    def get_session_factory(cls):
+        """Get or create the session factory."""
+        if cls._session_factory is None:
+            cls._session_factory = async_sessionmaker(
+                bind=cls.get_engine(),
+                class_=AsyncSession,
+                expire_on_commit=False,
+            )
+        return cls._session_factory
+
+    @classmethod
+    def get_sync_conn(cls) -> sqlite3.Connection:
+        """Get synchronous connection for test seeding."""
         if cls._sync_conn is None:
-            db_path = Path(__file__).parent.parent.parent / "test.db"
-            cls._sync_conn = sqlite3.connect(str(db_path))
+            cls._sync_conn = sqlite3.connect(cls.get_db_path(), check_same_thread=False)
             cls._sync_conn.row_factory = sqlite3.Row
         return cls._sync_conn
 
     @classmethod
+    async def setup_db(cls) -> None:
+        """Create tables."""
+        engine = cls.get_engine()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    @classmethod
     async def reset(cls) -> None:
-        """Reset the database by clearing all tables."""
-        if cls._conn is not None:
-            await cls._conn.execute("DELETE FROM transactions")
-            await cls._conn.execute("DELETE FROM categories")
-            await cls._conn.commit()
-        if cls._sync_conn is not None:
-            cls._sync_conn.execute("DELETE FROM transactions")
-            cls._sync_conn.execute("DELETE FROM categories")
-            cls._sync_conn.commit()
+        """Clear all tables."""
+        factory = cls.get_session_factory()
+        async with factory() as session:
+            await session.execute(text("DELETE FROM transactions"))
+            await session.execute(text("DELETE FROM categories"))
+            await session.commit()
 
     @classmethod
     def seed(cls, sql: str, params: tuple) -> None:
         """Synchronously seed test data using the sync connection."""
-        conn = cls._get_sync_conn()
+        conn = cls.get_sync_conn()
         conn.execute(sql, params)
         conn.commit()
 
+    @classmethod
+    def cleanup(cls) -> None:
+        """Close connections and remove temp file."""
+        if cls._sync_conn:
+            cls._sync_conn.close()
+            cls._sync_conn = None
+        if cls._engine:
+            cls._engine = None
+            cls._engine_sync = None
+        if cls._db_path and os.path.exists(cls._db_path):
+            os.unlink(cls._db_path)
+            cls._db_path = None
 
-@pytest_asyncio.fixture(autouse=True)
-async def reset_db() -> None:
-    """Reset database before each test."""
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def setup_test_db():
+    """Setup test database once per test function."""
+    await TestDB.setup_db()
+    await TestDB.reset()
+    yield
     await TestDB.reset()
 
 
 @pytest.fixture
 def app() -> FastAPI:
     """Create FastAPI app with shared test database."""
+    from src.api.categories import router as categories_router
+    from src.api.stats import router as stats_router
+    from src.api.transactions import router as transactions_router
+    from src.config.database import get_db
+
     application = FastAPI()
     application.include_router(transactions_router)
     application.include_router(categories_router)
     application.include_router(stats_router)
 
-    from src.api.transactions import get_db as tx_get_db
-    from src.api.categories import get_db as cat_get_db
-    from src.api.stats import get_db as stats_get_db
+    async def get_test_session():
+        """Get test SQLAlchemy session."""
+        factory = TestDB.get_session_factory()
+        async with factory() as session:
+            yield session
 
-    async def get_test_conn() -> aiosqlite.Connection:
-        return await TestDB.get_conn()
-
-    application.dependency_overrides[tx_get_db] = get_test_conn
-    application.dependency_overrides[cat_get_db] = get_test_conn
-    application.dependency_overrides[stats_get_db] = get_test_conn
+    application.dependency_overrides[get_db] = get_test_session
 
     return application
 
@@ -123,11 +144,11 @@ class TestCategoriesAPI:
     """Tests for GET /api/categories."""
 
     def test_list_categories_empty(self, client: TestClient) -> None:
-        """Should return empty list when no categories exist."""
+        """Should return empty dict when no categories exist."""
         response = client.get("/api/categories")
         assert response.status_code == 200
         json = response.json()
-        assert json["data"] == []
+        assert json["data"] == {"income": [], "expense": []}
         assert json["message"] == "OK"
 
     def test_list_categories_with_data(self, client: TestClient) -> None:
@@ -141,8 +162,8 @@ class TestCategoriesAPI:
         response = client.get("/api/categories")
         assert response.status_code == 200
         json = response.json()
-        assert len(json["data"]) == 1
-        assert json["data"][0]["name"] == "Food"
+        assert len(json["data"]["expense"]) == 1
+        assert json["data"]["expense"][0]["name"] == "Food"
 
 
 class TestTransactionsAPI:

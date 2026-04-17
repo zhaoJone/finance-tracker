@@ -4,7 +4,7 @@
 |---|---|---|---|
 | 2026-04-16 | 目录 src/types/ 与 Python 标准库 types 模块同名 | Python 模块解析规则导致导入歧义 | 目录重命名为 schemas/，Linter 和 CLAUDE.md 同步更新 |
 
-## Docker 部署设计决策
+## PostgreSQL 迁移实施计划
 
 | 日期 | 决策 | 理由 |
 |---|---|---|
@@ -14,3 +14,129 @@
 | 2026-04-17 | /api/ 通过 nginx 反向代理到 backend:8000/api/ | 前后端分离，Nginx 统一入口 |
 | 2026-04-17 | 后端 healthcheck 使用 /api/health 端点 | 避免与前端路由冲突 |
 | 2026-04-17 | 暴露端口 8080 而非 80 | 本地端口 80 已被占用 |
+| 2026-04-17 | 数据库迁移至 PostgreSQL + Alembic | 支持生产环境部署，版本化管理数据库结构 |
+| 2026-04-17 | 单元测试保留 SQLite+aiosqlite | CI 环境不依赖真实 PostgreSQL |
+
+### 子任务 1.1：依赖更新
+**文件：** `backend/pyproject.toml`
+- 添加：`asyncpg`、`alembic`、`sqlalchemy[asyncio]`
+- 保留测试依赖：`aiosqlite`（用于测试环境 SQLite 内存库）
+
+### 子任务 1.2：数据库连接层
+**新建文件：** `backend/src/config/database.py`
+- 通过环境变量 `DATABASE_URL` 读取连接字符串
+- 默认值：`postgresql+asyncpg://postgres:mysecretpassword@127.0.0.1:5432/finance_tracker`
+- 提供 `get_db()` 依赖注入函数供 FastAPI 使用
+
+### 子任务 1.3：SQLAlchemy ORM 模型
+**新建文件：** `backend/src/repository/models.py`
+- Table：`transactions`、`categories`
+- 与现有 Pydantic schemas 字段一致
+- **注意：** Category 表当前无 icon 字段（与 schema 定义不一致），迁移时保持现状
+
+### 子任务 1.4：Repository 层改造
+**改造文件：** `backend/src/repository/transaction.py`、`backend/src/repository/category.py`
+- 内部实现从 aiosqlite raw SQL 切换至 SQLAlchemy async session
+- **接口（方法签名）保持不变**，service 层零改动
+
+### 子任务 2： Alembic Migration
+**新建目录：** `backend/migrations/`
+- `alembic.ini`：sqlalchemy.url 从环境变量读取
+- `migrations/env.py`：导入 SQLAlchemy models，支持 autogenerate
+- `migrations/script.py.mako`：标准模板
+
+**Makefile 新增命令：**
+```makefile
+migrate:          # alembic upgrade head
+migrate-new:      # alembic revision --autogenerate -m "$(msg)"
+migrate-down:     # alembic downgrade -1
+migrate-history:  # alembic history
+```
+
+**FastAPI lifespan 改造：**
+```python
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    run_migrations()  # 启动时自动 upgrade head
+    yield
+```
+
+### 子任务 3：Docker Compose 更新
+**文件：** `docker-compose.yml`
+- 新增 `postgres` service（postgres:16-alpine）
+- 移除 `./data` volume，改用 `postgres_data` named volume
+- backend depends_on postgres healthcheck
+- backend 环境变量注入 DATABASE_URL
+
+### 子任务 4：前端全面汉化
+**汉化范围：** 所有用户可见文字
+- 页面标题、导航菜单
+- 表单 label、placeholder、按钮文字
+- 错误提示、空状态提示、加载状态
+- 图表坐标轴标签、图例
+- 金额格式：¥X,XXX.XX（替换 $）
+- 日期格式：YYYY年MM月DD日
+
+**不汉化：** 代码变量名、函数名、console.log、API 路径
+
+### 子任务 5：Category 管理功能
+
+#### 5.1 后端 API 补全
+**文件：** `backend/src/api/categories.py`
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/categories` | GET | 按 type 分组返回 |
+| `/api/categories` | POST | 创建分类 |
+| `/api/categories/{id}` | PUT | 更新名称/颜色 |
+| `/api/categories/{id}` | DELETE | 删除（有关联交易返回 409）|
+
+**DELETE 409 场景：** 查询 `transactions` 表中是否有 `category_id = target_id`，有则返回冲突错误。
+
+#### 5.2 前端页面
+**新建：** `frontend/src/pages/CategoriesPage.tsx`
+**新建：** `frontend/src/components/features/CategoryForm.tsx`（Drawer/Modal）
+
+**UI 规格：**
+- Tab 分组：收入类 / 支出类
+- 分类卡片：色块 + 名称 + 关联交易数量 + 编辑/删除图标
+- 新增按钮：页面右上角「+ 新增分类」
+- 空状态：插画 + 文字「暂无分类，点击右上角添加」
+
+**CategoryForm 字段：**
+1. 分类名称（必填，最多 10 字，实时字数）
+2. 类型（收入/支出，编辑时不可更改）
+3. 颜色选择器：12 个预设色块，选中态高亮 + 实时预览卡片
+
+**删除确认逻辑：**
+- 有关联交易：Toast 提示「该分类下有 X 笔交易，无法删除」
+- 无关联交易：二次确认弹窗
+
+**TransactionForm 改造：**
+- 分类下拉框末尾加「+ 管理分类」入口
+
+#### 5.3 导航入口
+**文件：** `frontend/src/App.tsx`
+- 新增「分类管理」菜单项（图标用标签图标）
+
+### 影响范围分析
+
+| 文件 | 改动类型 | 说明 |
+|------|----------|------|
+| `backend/pyproject.toml` | 修改 | 新增 3 个依赖 |
+| `backend/src/config/database.py` | 新建 | 数据库连接层 |
+| `backend/src/repository/models.py` | 新建 | SQLAlchemy ORM 模型 |
+| `backend/src/repository/transaction.py` | 重写 | 内部实现换 SQLAlchemy |
+| `backend/src/repository/category.py` | 重写 | 内部实现换 SQLAlchemy |
+| `backend/src/api/categories.py` | 扩展 | 补全 POST/PUT/DELETE |
+| `backend/src/api/main.py` | 修改 | lifespan 改用 Alembic |
+| `backend/alembic.ini` | 新建 | Alembic 配置 |
+| `backend/migrations/` | 新建 | Alembic 迁移脚本 |
+| `backend/Makefile` | 修改 | 新增 migrate 命令 |
+| `docker-compose.yml` | 修改 | 新增 postgres service |
+| `frontend/src/App.tsx` | 修改 | 新增导航入口 |
+| `frontend/src/pages/CategoriesPage.tsx` | 新建 | 分类管理页面 |
+| `frontend/src/components/features/CategoryForm.tsx` | 新建 | 分类表单组件 |
+| `frontend/src/pages/TransactionsPage.tsx` | 修改 | 分类下拉增加管理入口 |
+| `frontend/src/pages/DashboardPage.tsx` | 修改 | 汉化 |
+| `frontend/src/components/features/*.tsx` | 修改 | 汉化 |
