@@ -8,7 +8,7 @@
 | schemas/ | 100% | ✅ | ✅ 已建立 | 2026-04-16 |
 | repository/ | 100% | ✅ | ✅ 已建立（SQLAlchemy ORM） | 2026-04-17 |
 | service/ | 95% | ✅ | ✅ 已建立 | 2026-04-16 |
-| api/ | 92% | ✅ | ✅ 已建立 | 2026-04-16 |
+| api/ | 95% | ✅ | ✅ 已建立（含完整 CRUD + 409 错误处理） | 2026-04-17 |
 | config/ | - | ✅ | ✅ 已建立（database, migrations） | 2026-04-17 |
 | Docker | - | ✅ | ✅ 已建立（PostgreSQL） | 2026-04-17 |
 | Alembic Migration | - | ✅ | ✅ 已建立 | 2026-04-17 |
