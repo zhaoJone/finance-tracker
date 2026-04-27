@@ -1,22 +1,22 @@
 """
-Category API routes.
+Category API routes - all endpoints require authentication.
 """
 from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.deps import DBSession, get_current_user
 from src.api.responses import error_response, success_response
 from src.api.schemas import CategoryCreate, CategoryUpdate
-from src.config.database import get_db
 from src.repository import CategoryRepository
 from src.schemas import Category
+from src.schemas.user import User
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
 
 
-async def get_category_repo(db: AsyncSession = Depends(get_db)) -> CategoryRepository:
+async def get_category_repo(db: DBSession) -> CategoryRepository:
     """Dependency injection for CategoryRepository."""
     return CategoryRepository(db)
 
@@ -24,9 +24,10 @@ async def get_category_repo(db: AsyncSession = Depends(get_db)) -> CategoryRepos
 @router.get("")
 async def list_categories(
     repo: CategoryRepository = Depends(get_category_repo),
+    user: User = Depends(get_current_user),
 ) -> Any:
-    """List all categories grouped by type."""
-    categories = await repo.list()
+    """List all categories for the current user grouped by type."""
+    categories = await repo.list(user_id=str(user.id))
     income = [c.model_dump(mode="json") for c in categories if c.type == "income"]
     expense = [c.model_dump(mode="json") for c in categories if c.type == "expense"]
     return success_response(data={"income": income, "expense": expense})
@@ -36,13 +37,15 @@ async def list_categories(
 async def create_category(
     body: CategoryCreate,
     repo: CategoryRepository = Depends(get_category_repo),
+    user: User = Depends(get_current_user),
 ) -> Any:
-    """Create a new category."""
+    """Create a new category for the current user."""
     category = Category(
         id=uuid4(),
         name=body.name,
         color=body.color,
         type=body.type,
+        user_id=user.id,
     )
     created = await repo.create(category)
     return success_response(data=created.model_dump(mode="json"), message="Category created")
@@ -53,9 +56,10 @@ async def update_category(
     cat_id: UUID,
     body: CategoryUpdate,
     repo: CategoryRepository = Depends(get_category_repo),
+    user: User = Depends(get_current_user),
 ) -> Any:
-    """Update an existing category."""
-    existing = await repo.get(cat_id)
+    """Update an existing category (only if owned by current user)."""
+    existing = await repo.get(cat_id, user_id=str(user.id))
     if existing is None:
         return error_response(
             error="Not found",
@@ -70,6 +74,7 @@ async def update_category(
         name=update_data.get("name", existing.name),
         color=update_data.get("color", existing.color),
         type=existing.type,
+        user_id=existing.user_id,
     )
     result = await repo.update(updated_category)
     if result is None:
@@ -86,9 +91,10 @@ async def update_category(
 async def delete_category(
     cat_id: UUID,
     repo: CategoryRepository = Depends(get_category_repo),
+    user: User = Depends(get_current_user),
 ) -> Any:
     """Delete a category. Fails with 409 if transactions are linked."""
-    existing = await repo.get(cat_id)
+    existing = await repo.get(cat_id, user_id=str(user.id))
     if existing is None:
         return error_response(
             error="Not found",

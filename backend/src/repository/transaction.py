@@ -21,6 +21,7 @@ class TransactionRepository:
         """Insert a new transaction."""
         row = TransactionTable(
             id=str(tx.id),
+            user_id=str(tx.user_id),
             amount=tx.amount,
             category_id=str(tx.category_id),
             note=tx.note,
@@ -32,9 +33,11 @@ class TransactionRepository:
         await self._session.flush()
         return tx
 
-    async def get(self, id: UUID) -> Transaction | None:
-        """Get a transaction by id."""
+    async def get(self, id: UUID, user_id: str | None = None) -> Transaction | None:
+        """Get a transaction by id, optionally scoped to a user."""
         stmt = select(TransactionTable).where(TransactionTable.id == str(id))
+        if user_id is not None:
+            stmt = stmt.where(TransactionTable.user_id == str(user_id))
         result = await self._session.execute(stmt)
         row = result.scalar_one_or_none()
         if row is None:
@@ -43,6 +46,7 @@ class TransactionRepository:
 
     async def list(
         self,
+        user_id: str | None = None,
         start_date: date | None = None,
         end_date: date | None = None,
         category_id: UUID | None = None,
@@ -51,6 +55,8 @@ class TransactionRepository:
         """List transactions with optional filters."""
         stmt = select(TransactionTable)
 
+        if user_id is not None:
+            stmt = stmt.where(TransactionTable.user_id == str(user_id))
         if start_date is not None:
             stmt = stmt.where(TransactionTable.date >= start_date)
         if end_date is not None:
@@ -95,6 +101,7 @@ class TransactionRepository:
         """Convert a database row to a Transaction."""
         return Transaction(
             id=UUID(row.id),
+            user_id=UUID(row.user_id),
             amount=row.amount,
             category_id=UUID(row.category_id),
             note=row.note or "",

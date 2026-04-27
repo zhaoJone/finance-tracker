@@ -12,7 +12,9 @@ from src.repository.models import Base
 
 def get_alembic_config() -> Config:
     """Get Alembic configuration."""
-    cfg = Config(file_="/Users/zhaojun/coding/cc/finance-tracker/backend/alembic.ini")
+    import os
+    cfg_path = os.getenv("ALEMBIC_INI", "/opt/data/home/finance-tracker/backend/alembic.ini")
+    cfg = Config(file_=cfg_path)
     return cfg
 
 
@@ -57,4 +59,12 @@ def do_run_migrations(connection: Connection) -> None:
 def upgrade_head() -> None:
     """Run alembic upgrade head programmatically."""
     import asyncio
-    asyncio.run(run_migrations_online())
+    try:
+        asyncio.get_running_loop()
+        # Already in async context, schedule the migration
+        async def _upgrade() -> None:
+            await run_migrations_online()
+        asyncio.create_task(_upgrade())
+    except RuntimeError:
+        # No running loop
+        asyncio.run(run_migrations_online())

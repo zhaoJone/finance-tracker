@@ -31,7 +31,7 @@ class MockCategoryRepository:
                 return cat
         return None
 
-    async def list(self) -> list[Category]:
+    async def list(self, user_id: UUID | None = None) -> list[Category]:
         return list(self._categories)
 
     async def update(self, category: Category) -> Category | None:
@@ -67,6 +67,7 @@ class MockTransactionRepository:
 
     async def list(
         self,
+        user_id: UUID | None = None,
         start_date: date | None = None,
         end_date: date | None = None,
         category_id: UUID | None = None,
@@ -106,6 +107,7 @@ def make_tx(
 ) -> Transaction:
     return Transaction(
         id=uuid4(),
+        user_id=uuid4(),
         amount=amount,
         category_id=cat_id,
         note="",
@@ -118,6 +120,7 @@ def make_tx(
 def make_cat(name: str, cat_type: str) -> Category:
     return Category(
         id=uuid4(),
+        user_id=uuid4(),
         name=name,
         color="#000000",
         type=cat_type,  # type: ignore[arg-type]
@@ -246,7 +249,7 @@ class TestTransactionServiceInitDefaultCategories:
         cat_repo = MockCategoryRepository()
         svc = TransactionService(tx_repo, cat_repo)
 
-        result = await svc.init_default_categories()
+        result = await svc.init_default_categories(uuid4())
 
         assert len(result) == 8
         names = {cat.name for cat in result}
@@ -262,7 +265,7 @@ class TestTransactionServiceInitDefaultCategories:
         existing = make_cat("My Custom Category", "expense")
         await cat_repo.create(existing)
 
-        result = await svc.init_default_categories()
+        result = await svc.init_default_categories(uuid4())
 
         assert len(result) == 1
         assert result[0].name == "My Custom Category"

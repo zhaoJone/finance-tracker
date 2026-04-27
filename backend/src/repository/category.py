@@ -23,23 +23,28 @@ class CategoryRepository:
             name=category.name,
             color=category.color,
             type=category.type,
+            user_id=str(category.user_id),
         )
         self._session.add(row)
         await self._session.flush()
         return category
 
-    async def get(self, id: UUID) -> Category | None:
-        """Get a category by id."""
+    async def get(self, id: UUID, user_id: str | None = None) -> Category | None:
+        """Get a category by id, optionally scoped to a user."""
         stmt = select(CategoryTable).where(CategoryTable.id == str(id))
+        if user_id is not None:
+            stmt = stmt.where(CategoryTable.user_id == str(user_id))
         result = await self._session.execute(stmt)
         row = result.scalar_one_or_none()
         if row is None:
             return None
         return self._row_to_category(row)
 
-    async def list(self) -> list[Category]:
-        """List all categories."""
+    async def list(self, user_id: str | None = None) -> list[Category]:
+        """List all categories, optionally filtered by user."""
         stmt = select(CategoryTable).order_by(CategoryTable.name)
+        if user_id is not None:
+            stmt = stmt.where(CategoryTable.user_id == str(user_id))
         result = await self._session.execute(stmt)
         rows = result.scalars().all()
         return [self._row_to_category(row) for row in rows]
@@ -79,4 +84,5 @@ class CategoryRepository:
             name=row.name,
             color=row.color,
             type=row.type,  # type: ignore[arg-type]
+            user_id=UUID(row.user_id),
         )

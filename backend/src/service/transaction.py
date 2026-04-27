@@ -63,6 +63,7 @@ class TransactionService:
         self,
         year: int,
         month: int,
+        user_id: str | None = None,
     ) -> MonthlySummary:
         """Return monthly income, expense, and balance."""
         start_date = date(year, month, 1)
@@ -71,7 +72,7 @@ class TransactionService:
         else:
             end_date = date(year, month + 1, 1)
 
-        txs = await self._tx_repo.list(start_date=start_date, end_date=end_date)
+        txs = await self._tx_repo.list(user_id=user_id, start_date=start_date, end_date=end_date)
 
         income = sum(tx.amount for tx in txs if tx.type == "income")
         expense = sum(tx.amount for tx in txs if tx.type == "expense")
@@ -88,9 +89,10 @@ class TransactionService:
         self,
         start_date: date | None = None,
         end_date: date | None = None,
+        user_id: str | None = None,
     ) -> CategorySummary:
         """Return breakdown by category with amounts and percentages."""
-        txs = await self._tx_repo.list(start_date=start_date, end_date=end_date)
+        txs = await self._tx_repo.list(user_id=user_id, start_date=start_date, end_date=end_date)
 
         income_map: dict[UUID, int] = {}
         expense_map: dict[UUID, int] = {}
@@ -102,7 +104,7 @@ class TransactionService:
         total_income = sum(income_map.values())
         total_expense = sum(expense_map.values())
 
-        categories = await self._category_repo.list()
+        categories = await self._category_repo.list(user_id=user_id)
         cat_map = {cat.id: cat.name for cat in categories}
 
         breakdowns: list[CategoryBreakdown] = []
@@ -135,16 +137,18 @@ class TransactionService:
             total_expense=total_expense,
         )
 
-    async def init_default_categories(self) -> list[Category]:
+    async def init_default_categories(self, user_id: UUID | str) -> list[Category]:
         """Create default categories if none exist. Returns created categories."""
-        existing = await self._category_repo.list()
+        existing = await self._category_repo.list(user_id=str(user_id))
         if existing:
             return existing
 
         created: list[Category] = []
+        user_uuid = user_id if isinstance(user_id, UUID) else UUID(user_id)
         for cat_data in self.DEFAULT_CATEGORIES:
             cat = Category(
                 id=uuid4(),
+                user_id=user_uuid,
                 name=cat_data["name"],
                 color=cat_data["color"],
                 type=cat_data["type"],  # type: ignore[arg-type]

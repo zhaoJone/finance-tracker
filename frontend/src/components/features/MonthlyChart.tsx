@@ -21,15 +21,24 @@ export function MonthlyChart({ data }: MonthlyChartProps) {
 
   if (data.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        暂无数据
+      <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-gray-100 shadow-sm">
+        <div className="w-12 h-12 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+          <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+          </svg>
+        </div>
+        <p className="text-gray-500 font-medium">暂无月度数据</p>
+        <p className="text-gray-400 text-sm mt-1">开始记录交易后自动生成趋势图</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-4 rounded-lg border border-gray-200">
-      <h3 className="text-sm font-medium text-gray-700 mb-4">月度概览</h3>
+    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-gray-700">月度趋势</h3>
+        <span className="text-xs text-gray-400">单位: 元</span>
+      </div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>

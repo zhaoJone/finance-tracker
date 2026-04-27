@@ -8,17 +8,17 @@ check: lint typecheck test
 
 lint:
 	@echo "--- 层级检查 ---"
-	cd lints && python check_layers.py
+	cd lints && uv run python check_layers.py
 	@echo "--- 响应格式检查 ---"
-	cd lints && python check_response_format.py
+	cd lints && uv run python check_response_format.py
 	@echo "--- Ruff ---"
-	ruff check src/
+	uv run ruff check src/
 
 typecheck:
-	mypy src/ --strict
+	uv run python -m mypy src/ --strict
 
 test:
-	pytest tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=80
+	uv run pytest tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=80
 
 migrate:
 	alembic upgrade head

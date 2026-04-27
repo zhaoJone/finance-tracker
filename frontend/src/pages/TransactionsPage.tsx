@@ -50,15 +50,17 @@ export function TransactionsPage() {
       </div>
 
       {showForm && (
-        <TransactionForm
-          categories={categories}
-          onSubmit={handleSubmit}
-          onCancel={() => setShowForm(false)}
-          isLoading={createTransaction.isPending}
-        />
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <TransactionForm
+            categories={categories}
+            onSubmit={handleSubmit}
+            onCancel={() => setShowForm(false)}
+            isLoading={createTransaction.isPending}
+          />
+        </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-lg border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
         <Select
           label="类型"
           value={filters.type ?? ""}
@@ -71,21 +73,24 @@ export function TransactionsPage() {
           onChange={(e) => handleFilterChange("category_id", e.target.value)}
           options={categoryOptions}
         />
-        <input
-          type="month"
-          value={filters.start_date ? filters.start_date.slice(0, 7) : ""}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (value) {
-              handleFilterChange("start_date", `${value}-01`);
-              handleFilterChange("end_date", `${value}-31`);
-            } else {
-              handleFilterChange("start_date", "");
-              handleFilterChange("end_date", "");
-            }
-          }}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-        />
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">月份</label>
+          <input
+            type="month"
+            value={filters.start_date ? filters.start_date.slice(0, 7) : ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value) {
+                handleFilterChange("start_date", `${value}-01`);
+                handleFilterChange("end_date", `${value}-31`);
+              } else {
+                handleFilterChange("start_date", "");
+                handleFilterChange("end_date", "");
+              }
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-colors"
+          />
+        </div>
       </div>
 
       {isLoading ? (

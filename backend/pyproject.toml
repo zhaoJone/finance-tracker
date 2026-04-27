@@ -34,3 +34,25 @@ packages = ["src"]
 
 [tool.ruff]
 src = ["src"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "src/config/migrations.py",
+    "src/api/dependencies.py",
+    "src/**/__init__.py",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.20.2",
+]

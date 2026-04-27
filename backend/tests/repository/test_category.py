@@ -41,9 +41,13 @@ def repo(session: AsyncSession) -> CategoryRepository:
 
 def make_category(
     override: dict | None = None,
+    user_id: str | None = None,
 ) -> Category:
+    if user_id is None:
+        user_id = str(uuid4())
     cat = Category(
         id=uuid4(),
+        user_id=user_id,
         name="Test Category",
         color="#FF5733",
         type="expense",

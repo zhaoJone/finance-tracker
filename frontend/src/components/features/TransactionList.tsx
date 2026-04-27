@@ -37,8 +37,14 @@ export function TransactionList({
 }: TransactionListProps) {
   if (transactions.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        暂无交易记录
+      <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-xl border border-gray-100 shadow-sm">
+        <div className="w-12 h-12 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+          <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </div>
+        <p className="text-gray-500 font-medium">暂无交易记录</p>
+        <p className="text-gray-400 text-sm mt-1">点击上方「添加交易」开始记录</p>
       </div>
     );
   }
@@ -48,7 +54,7 @@ export function TransactionList({
       {transactions.map((tx) => (
         <div
           key={tx.id}
-          className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+          className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-150"
         >
           <div className="flex items-center gap-3">
             <div

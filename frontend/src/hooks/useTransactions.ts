@@ -1,9 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type {
-  Transaction,
-  TransactionCreate,
-  TransactionFilter,
-} from "@/schemas/transaction";
+import type { Transaction, TransactionCreate, TransactionFilter } from "@/schemas/transaction";
 
 interface ApiResponse<T> {
   data: T;
@@ -17,10 +13,12 @@ interface ErrorResponse {
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = localStorage.getItem("token");
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     ...options,
   });
 
@@ -33,13 +31,8 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return result.data;
 }
 
-export interface UseTransactionsOptions {
-  filters?: TransactionFilter;
-}
-
-export function useTransactions(options: UseTransactionsOptions = {}) {
+export function useTransactions(options: { filters?: TransactionFilter } = {}) {
   const { filters = {} } = options;
-
   const params = new URLSearchParams();
   if (filters.start_date) params.set("start_date", filters.start_date);
   if (filters.end_date) params.set("end_date", filters.end_date);

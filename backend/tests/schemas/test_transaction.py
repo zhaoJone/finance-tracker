@@ -12,8 +12,10 @@ from src.schemas import Transaction
 
 class TestTransaction:
     def test_valid_transaction(self) -> None:
+        uid = uuid4()
         tx = Transaction(
             id=uuid4(),
+            user_id=uid,
             amount=1000,
             category_id=uuid4(),
             note="Test",
@@ -25,8 +27,10 @@ class TestTransaction:
         assert tx.amount == 1000
 
     def test_expense_transaction(self) -> None:
+        uid = uuid4()
         tx = Transaction(
             id=uuid4(),
+            user_id=uid,
             amount=500,
             category_id=uuid4(),
             note="",
@@ -41,6 +45,7 @@ class TestTransaction:
         with pytest.raises(ValidationError):
             Transaction(
                 id=uuid4(),
+                user_id=uuid4(),
                 amount=100,
                 category_id=uuid4(),
                 note="",
@@ -50,8 +55,10 @@ class TestTransaction:
             )
 
     def test_note_strip_whitespace(self) -> None:
+        uid = uuid4()
         tx = Transaction(
             id=uuid4(),
+            user_id=uid,
             amount=100,
             category_id=uuid4(),
             note="  hello  ",

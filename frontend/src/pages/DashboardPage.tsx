@@ -21,32 +21,50 @@ export function DashboardPage() {
     };
   }, [monthlyData]);
 
+  const monthLabel = `${now.getMonth() + 1}月`;
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">仪表盘</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">仪表盘</h1>
+        <span className="text-sm text-gray-400">{monthLabel}</span>
+      </div>
 
-      {currentMonthData && (
+      {currentMonthData ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-500">收入</p>
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1.5 h-5 bg-green-500 rounded-full" />
+              <p className="text-sm text-gray-500">本月收入</p>
+            </div>
             <p className="text-2xl font-bold text-green-600">{formatCurrency(currentMonthData.income)}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-500">支出</p>
-            <p className="text-2xl font-bold text-red-600">{formatCurrency(currentMonthData.expense)}</p>
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1.5 h-5 bg-red-500 rounded-full" />
+              <p className="text-sm text-gray-500">本月支出</p>
+            </div>
+            <p className="text-2xl font-bold text-red-500">{formatCurrency(currentMonthData.expense)}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-500">余额</p>
-            <p className={`text-2xl font-bold ${currentMonthData.balance >= 0 ? "text-blue-600" : "text-red-600"}`}>
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-1.5 h-5 rounded-full ${currentMonthData.balance >= 0 ? "bg-blue-500" : "bg-red-500"}`} />
+              <p className="text-sm text-gray-500">本月结余</p>
+            </div>
+            <p className={`text-2xl font-bold ${currentMonthData.balance >= 0 ? "text-blue-600" : "text-red-500"}`}>
               {formatCurrency(currentMonthData.balance)}
             </p>
           </div>
+        </div>
+      ) : (
+        <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm text-center">
+          <p className="text-gray-400">暂无本月数据</p>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {categoryStats && <CategoryStats data={categoryStats} />}
-        <MonthlyChart data={[]} />
+        {monthlyData && <MonthlyChart data={[monthlyData]} />}
       </div>
     </div>
   );

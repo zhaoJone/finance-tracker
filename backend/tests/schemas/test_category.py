@@ -11,8 +11,10 @@ from src.schemas import Category
 
 class TestCategory:
     def test_valid_category(self) -> None:
+        uid = uuid4()
         cat = Category(
             id=uuid4(),
+            user_id=uid,
             name="Food",
             color="#FF5733",
             type="expense",
@@ -21,8 +23,10 @@ class TestCategory:
         assert cat.color == "#FF5733"
 
     def test_income_category(self) -> None:
+        uid = uuid4()
         cat = Category(
             id=uuid4(),
+            user_id=uid,
             name="Salary",
             color="#00FF00",
             type="income",
@@ -39,8 +43,10 @@ class TestCategory:
             )
 
     def test_name_strip_whitespace(self) -> None:
+        uid = uuid4()
         cat = Category(
             id=uuid4(),
+            user_id=uid,
             name="  Food  ",
             color="#FF5733",
             type="expense",

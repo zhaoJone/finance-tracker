@@ -31,15 +31,21 @@ async def session() -> AsyncSession:
         expire_on_commit=False,
     )
     async with factory() as sess:
-        # Create a default category for tests
+        # Create a default user and category for tests
+        user_id = str(uuid4())
+        cat_id = str(uuid4())
         cat = CategoryTable(
-            id=str(uuid4()),
+            id=cat_id,
+            user_id=user_id,
             name="Test Category",
             color="#FF5733",
             type="expense",
         )
         sess.add(cat)
         await sess.commit()
+        # Store test IDs on the session for use by make_tx
+        sess._test_user_id = user_id
+        sess._test_cat_id = cat_id
         yield sess
     await engine.dispose()
 
@@ -51,13 +57,17 @@ def repo(session: AsyncSession) -> TransactionRepository:
 
 def make_tx(
     override: dict | None = None,
+    user_id: str | None = None,
     cat_id: str | None = None,
 ) -> Transaction:
     now = datetime(2026, 1, 1, 12, 0, 0)
+    if user_id is None:
+        user_id = str(uuid4())
     if cat_id is None:
         cat_id = str(uuid4())
     tx = Transaction(
         id=uuid4(),
+        user_id=user_id,
         amount=1000,
         category_id=uuid4(),
         note="test",

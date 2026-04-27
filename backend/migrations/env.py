@@ -25,7 +25,7 @@ def get_url() -> str:
     import os
     return os.getenv(
         "DATABASE_URL",
-        "postgresql+asyncpg://postgres:mysecretpassword@127.0.0.1:5432/finance_tracker",
+        "postgresql+asyncpg://postgres:mysecretpassword@my-postgres:5432/finance_tracker",
     )
 
 

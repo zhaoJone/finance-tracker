@@ -27,6 +27,14 @@ export function TransactionForm({
   const navigate = useNavigate();
   const filteredCategories = categories.filter((c) => c.type === type);
 
+  // Auto-select first category when filteredCategories has exactly one item and nothing is selected
+  const effectiveCategoryId = (() => {
+    if (categoryId && filteredCategories.some((c) => c.id === categoryId)) return categoryId;
+    if (filteredCategories.length === 1) return filteredCategories[0].id;
+    if (categoryId === "" && filteredCategories.length > 0) return filteredCategories[0].id;
+    return categoryId;
+  })();
+
   const handleCategoryChange = (value: string) => {
     if (value === "__manage__") {
       navigate("/categories");
@@ -35,10 +43,20 @@ export function TransactionForm({
     setCategoryId(value);
   };
 
+  const handleTypeChange = (value: "income" | "expense") => {
+    setType(value);
+    const newFiltered = categories.filter((c) => c.type === value);
+    if (newFiltered.length === 1) {
+      setCategoryId(newFiltered[0].id);
+    } else {
+      setCategoryId("");
+    }
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
-    if (categoryId === "__manage__") {
+    if (effectiveCategoryId === "__manage__") {
       navigate("/categories");
       return;
     }
@@ -48,7 +66,7 @@ export function TransactionForm({
 
     onSubmit({
       amount: amountInCents,
-      category_id: categoryId,
+      category_id: effectiveCategoryId,
       note,
       date,
       type,
@@ -56,15 +74,12 @@ export function TransactionForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded-lg border border-gray-200">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-2 gap-4">
         <Select
           label="类型"
           value={type}
-          onChange={(e) => {
-            setType(e.target.value as "income" | "expense");
-            setCategoryId("");
-          }}
+          onChange={(e) => handleTypeChange(e.target.value as "income" | "expense")}
           options={[
             { value: "expense", label: "支出" },
             { value: "income", label: "收入" },
@@ -85,7 +100,7 @@ export function TransactionForm({
       <div>
         <Select
           label="分类"
-          value={categoryId}
+          value={effectiveCategoryId}
           onChange={(e) => handleCategoryChange(e.target.value)}
           options={[
             ...filteredCategories.map((c) => ({ value: c.id, label: c.name })),
@@ -116,7 +131,7 @@ export function TransactionForm({
             取消
           </Button>
         )}
-        <Button type="submit" disabled={isLoading || !categoryId || categoryId === "__manage__"}>
+        <Button type="submit" disabled={isLoading || !effectiveCategoryId || effectiveCategoryId === "__manage__"}>
           {isLoading ? "保存中..." : initialData ? "更新" : "创建"}
         </Button>
       </div>

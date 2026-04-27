@@ -12,6 +12,7 @@ class Transaction(BaseModel):
     """A financial transaction (income or expense)."""
 
     id: UUID
+    user_id: UUID
     amount: int = Field(..., description="Amount in cents (fen)")
     category_id: UUID
     note: str = ""

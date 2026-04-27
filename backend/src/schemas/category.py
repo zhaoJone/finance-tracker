@@ -11,6 +11,7 @@ class Category(BaseModel):
     """A category for transactions."""
 
     id: UUID
+    user_id: UUID
     name: str = Field(..., min_length=1, max_length=50)
     color: str = Field(..., description="Hex color code, e.g. #FF5733")
     type: Literal["income", "expense"]

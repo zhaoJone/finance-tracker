@@ -1,31 +1,28 @@
 """
-Transaction API routes.
+Transaction API routes - all endpoints require authentication.
 """
 from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.deps import DBSession, get_current_user
 from src.api.responses import error_response, success_response
-from src.api.schemas import (
-    TransactionCreate,
-    TransactionUpdate,
-)
-from src.config.database import get_db
+from src.api.schemas import TransactionCreate, TransactionUpdate
 from src.repository import CategoryRepository, TransactionRepository
 from src.schemas import Transaction
+from src.schemas.user import User
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
 
-async def get_tx_repo(db: AsyncSession = Depends(get_db)) -> TransactionRepository:
+async def get_tx_repo(db: DBSession) -> TransactionRepository:
     """Dependency injection for TransactionRepository."""
     return TransactionRepository(db)
 
 
-async def get_category_repo(db: AsyncSession = Depends(get_db)) -> CategoryRepository:
+async def get_category_repo(db: DBSession) -> CategoryRepository:
     """Dependency injection for CategoryRepository."""
     return CategoryRepository(db)
 
@@ -37,14 +34,16 @@ async def list_transactions(
     category_id: UUID | None = Query(None, description="Filter by category"),
     type: str | None = Query(None, description="income or expense"),
     repo: TransactionRepository = Depends(get_tx_repo),
+    user: User = Depends(get_current_user),
 ) -> Any:
-    """List transactions with optional filters."""
+    """List transactions with optional filters (user-scoped)."""
     from datetime import date as date_type
 
     parsed_start = date_type.fromisoformat(start_date) if start_date else None
     parsed_end = date_type.fromisoformat(end_date) if end_date else None
 
     transactions = await repo.list(
+        user_id=str(user.id),
         start_date=parsed_start,
         end_date=parsed_end,
         category_id=category_id,
@@ -57,11 +56,13 @@ async def list_transactions(
 async def create_transaction(
     body: TransactionCreate,
     repo: TransactionRepository = Depends(get_tx_repo),
+    user: User = Depends(get_current_user),
 ) -> Any:
-    """Create a new transaction."""
-    now = datetime.utcnow()
+    """Create a new transaction for the current user."""
+    now = datetime.now()
     tx = Transaction(
         id=uuid4(),
+        user_id=user.id,
         amount=body.amount,
         category_id=body.category_id,
         note=body.note,
@@ -78,9 +79,10 @@ async def update_transaction(
     tx_id: UUID,
     body: TransactionUpdate,
     repo: TransactionRepository = Depends(get_tx_repo),
+    user: User = Depends(get_current_user),
 ) -> Any:
-    """Update an existing transaction."""
-    existing = await repo.get(tx_id)
+    """Update an existing transaction (only if owned by current user)."""
+    existing = await repo.get(tx_id, user_id=str(user.id))
     if existing is None:
         return error_response(
             error="Not found",
@@ -109,9 +111,10 @@ async def update_transaction(
 async def delete_transaction(
     tx_id: UUID,
     repo: TransactionRepository = Depends(get_tx_repo),
+    user: User = Depends(get_current_user),
 ) -> Any:
-    """Delete a transaction."""
-    existing = await repo.get(tx_id)
+    """Delete a transaction (only if owned by current user)."""
+    existing = await repo.get(tx_id, user_id=str(user.id))
     if existing is None:
         return error_response(
             error="Not found",

@@ -20,15 +20,25 @@ export function CategoryStats({ data }: CategoryStatsProps) {
 
   if (data.categories.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        暂无数据
+      <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-gray-100 shadow-sm">
+        <div className="w-12 h-12 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+          <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+          </svg>
+        </div>
+        <p className="text-gray-500 font-medium">暂无分类数据</p>
+        <p className="text-gray-400 text-sm mt-1">添加交易后自动统计</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-4 rounded-lg border border-gray-200">
-      <h3 className="text-sm font-medium text-gray-700 mb-4">分类支出</h3>
+    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-gray-700">分类支出</h3>
+        <span className="text-xs text-gray-400">单位: 元</span>
+      </div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>

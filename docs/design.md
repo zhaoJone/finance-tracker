@@ -1,3 +1,69 @@
+### Phase 6：用户认证模块
+
+#### 6.1 需求
+- 用户使用邮箱 + 密码注册/登录
+- 所有账单(Transaction)和分类(Category)必须属于某个用户
+- JWT Token 认证，Token 通过 HTTP Bearer 头传递
+
+#### 6.2 数据库改造
+**新增表：** `users`
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | UUID | PK |
+| email | VARCHAR(255) | 唯一索引 |
+| password_hash | VARCHAR(255) | bcrypt 哈希 |
+| created_at | DATETIME | 创建时间 |
+
+**修改表：** `categories` → 新增 `user_id` 列（外键 → users.id）
+**修改表：** `transactions` → 新增 `user_id` 列（外键 → users.id）
+
+#### 6.3 后端模块
+
+| 文件 | 说明 |
+|------|------|
+| `schemas/user.py` | User, UserCreate, UserLogin, Token, TokenData |
+| `repository/user.py` | create, get_by_email, get_by_id |
+| `service/auth.py` | hash_password, verify_password, create_access_token |
+| `api/auth.py` | POST /auth/register, POST /auth/login, GET /auth/me |
+| `api/dependencies.py` | get_current_user 依赖（从 JWT 提取 user_id）|
+| `alembic/` | 新迁移文件 |
+
+**认证流程：**
+1. `/auth/register` → 验证邮箱唯一 → 哈希密码 → 创建用户 → 返回 JWT
+2. `/auth/login` → 验证邮箱存在 → 验证密码 → 返回 JWT
+3. 所有业务 API → `get_current_user` 提取 Bearer Token → 注入 `user_id` 到请求
+
+#### 6.4 前端模块
+
+| 文件 | 说明 |
+|------|------|
+| `schemas/user.ts` | TS interfaces |
+| `hooks/useAuth.ts` | login, logout, currentUser 状态 |
+| `pages/LoginPage.tsx` | 登录/注册表单 |
+| `App.tsx` | /login 路由 + ProtectedRoute |
+| `api/client.ts` | axios 拦截器注入 Token |
+
+#### 6.5 影响范围
+
+|| 文件 | 改动类型 |
+||------|----------|
+|| `backend/src/schemas/user.py` | 新建 |
+|| `backend/src/repository/user.py` | 新建 |
+|| `backend/src/service/auth.py` | 新建 |
+|| `backend/src/api/auth.py` | 新建 |
+|| `backend/src/api/dependencies.py` | 修改 |
+|| `backend/src/repository/models.py` | 修改（加 user_id 外键）|
+|| `backend/src/api/categories.py` | 修改（加 user_id 过滤）|
+|| `backend/src/api/transactions.py` | 修改（加 user_id 过滤）|
+|| `backend/src/api/stats.py` | 修改（加 user_id 过滤）|
+|| `backend/alembic/versions/` | 新迁移文件 |
+|| `frontend/src/schemas/user.ts` | 新建 |
+|| `frontend/src/hooks/useAuth.ts` | 新建 |
+|| `frontend/src/pages/LoginPage.tsx` | 新建 |
+|| `frontend/src/api/client.ts` | 新建 |
+|| `frontend/src/App.tsx` | 修改 |
+|| `frontend/src/pages/*.tsx` | 修改（添加登录校验）|
+
 ## Harness 进化日志
 
 | 日期 | Agent 犯的错 | 根因 | Harness 响应 |
