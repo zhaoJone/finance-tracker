@@ -19,6 +19,8 @@ dependencies = [
 dev = [
     "ruff>=0.15.0",
     "mypy>=1.0",
+    "types-python-jose",
+    "types-passlib",
     "pytest>=9.0",
     "pytest-asyncio>=1.0",
     "pytest-cov>=7.0",
