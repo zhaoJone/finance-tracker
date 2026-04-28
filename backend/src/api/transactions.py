@@ -12,7 +12,9 @@ from src.api.responses import error_response, success_response
 from src.api.schemas import TransactionCreate, TransactionUpdate
 from src.repository import CategoryRepository, TransactionRepository
 from src.schemas import Transaction
+from src.schemas.notification import ParsedNotification
 from src.schemas.user import User
+from src.service.notification import NotificationService
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
@@ -132,3 +134,36 @@ async def delete_transaction(
             status_code=400,
         )
     return success_response(data={"id": str(tx_id)}, message="Transaction deleted")
+
+
+@router.post("/import")
+async def import_notifications(
+    notifications: list[ParsedNotification],
+    default_category_id: UUID,
+    tx_repo: TransactionRepository = Depends(get_tx_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+    user: User = Depends(get_current_user),
+) -> Any:
+    """
+    批量导入支付通知通知，自动去重。
+
+    - notifications: 解析后的通知列表
+    - default_category_id: 导入交易默认归属的分类 ID
+    """
+    # 验证 default_category_id 属于当前用户
+    category = await category_repo.get(default_category_id, user_id=str(user.id))
+    if category is None:
+        return error_response(
+            error="Category not found",
+            code="CATEGORY_NOT_FOUND",
+            detail="default_category_id does not belong to current user",
+            status_code=400,
+        )
+
+    service = NotificationService(tx_repo, category_repo)
+    result = await service.import_notifications(
+        notifications=notifications,
+        user_id=user.id,
+        default_category_id=default_category_id,
+    )
+    return success_response(data=result, message="Import completed")

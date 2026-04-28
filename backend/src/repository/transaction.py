@@ -27,6 +27,7 @@ class TransactionRepository:
             note=tx.note,
             date=tx.date,
             type=tx.type,
+            trade_no=tx.trade_no,
             created_at=tx.created_at,
         )
         self._session.add(row)
@@ -97,6 +98,20 @@ class TransactionRepository:
         await self._session.flush()
         return bool(result.rowcount)  # type: ignore[attr-defined]
 
+    async def find_by_trade_no(self, trade_no: str, user_id: str) -> Transaction | None:
+        """Find a transaction by trade_no for deduplication."""
+        if not trade_no:
+            return None
+        stmt = select(TransactionTable).where(
+            TransactionTable.trade_no == trade_no,
+            TransactionTable.user_id == str(user_id),
+        )
+        result = await self._session.execute(stmt)
+        row = result.scalar_one_or_none()
+        if row is None:
+            return None
+        return self._row_to_tx(row)
+
     def _row_to_tx(self, row: TransactionTable) -> Transaction:
         """Convert a database row to a Transaction."""
         return Transaction(
@@ -107,5 +122,6 @@ class TransactionRepository:
             note=row.note or "",
             date=row.date,
             type=row.type,  # type: ignore[arg-type]
+            trade_no=row.trade_no or "",
             created_at=row.created_at,
         )

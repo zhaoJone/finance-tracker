@@ -276,8 +276,8 @@ class TestCategoriesAPI:
             (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, "", now),
         )
 
         response = client.delete(f"/api/categories/{cat_id}", headers=auth_headers)
@@ -306,8 +306,8 @@ class TestTransactionsAPI:
             (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (tx_id, 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (tx_id, 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, "", now),
         )
 
         response = client.get("/api/transactions", headers=auth_headers)
@@ -326,12 +326,12 @@ class TestTransactionsAPI:
             (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, "", now),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 30000, cat_id, "Salary", "2026-04-01", "income", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 30000, cat_id, "Salary", "2026-04-01", "income", TestDB._test_user_id, "", now),
         )
 
         response = client.get("/api/transactions?type=income", headers=auth_headers)
@@ -349,12 +349,12 @@ class TestTransactionsAPI:
             (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-10", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-10", "expense", TestDB._test_user_id, "", now),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 3000, cat_id, "Dinner", "2026-04-20", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 3000, cat_id, "Dinner", "2026-04-20", "expense", TestDB._test_user_id, "", now),
         )
 
         response = client.get("/api/transactions?start_date=2026-04-15&end_date=2026-04-25", headers=auth_headers)
@@ -377,12 +377,12 @@ class TestTransactionsAPI:
             (cat_id2, "Transport", "#2196F3", "expense", TestDB._test_user_id),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 5000, cat_id1, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 5000, cat_id1, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, "", now),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 3000, cat_id2, "Taxi", "2026-04-16", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 3000, cat_id2, "Taxi", "2026-04-16", "expense", TestDB._test_user_id, "", now),
         )
 
         response = client.get(f"/api/transactions?category_id={cat_id1}", headers=auth_headers)
@@ -439,8 +439,8 @@ class TestTransactionsAPI:
             (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (tx_id, 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (tx_id, 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, "", now),
         )
 
         response = client.put(f"/api/transactions/{tx_id}", json={
@@ -474,8 +474,8 @@ class TestTransactionsAPI:
             (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (tx_id, 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (tx_id, 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, "", now),
         )
 
         response = client.delete(f"/api/transactions/{tx_id}", headers=auth_headers)
@@ -515,12 +515,12 @@ class TestStatsAPI:
             (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, "", now),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 30000, cat_id, "Salary", "2026-04-01", "income", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 30000, cat_id, "Salary", "2026-04-01", "income", TestDB._test_user_id, "", now),
         )
 
         response = client.get("/api/stats/monthly?year=2026&month=4", headers=auth_headers)
@@ -539,12 +539,12 @@ class TestStatsAPI:
             (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-15", "expense", TestDB._test_user_id, "", now),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 30000, cat_id, "Salary", "2026-04-01", "income", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 30000, cat_id, "Salary", "2026-04-01", "income", TestDB._test_user_id, "", now),
         )
 
         response = client.get("/api/stats/by-category", headers=auth_headers)
@@ -562,12 +562,12 @@ class TestStatsAPI:
             (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-10", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 5000, cat_id, "Lunch", "2026-04-10", "expense", TestDB._test_user_id, "", now),
         )
         TestDB.seed(
-            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(uuid4()), 3000, cat_id, "Dinner", "2026-04-20", "expense", TestDB._test_user_id, now),
+            "INSERT INTO transactions (id, amount, category_id, note, date, type, user_id, trade_no, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), 3000, cat_id, "Dinner", "2026-04-20", "expense", TestDB._test_user_id, "", now),
         )
 
         response = client.get("/api/stats/by-category?start_date=2026-04-15&end_date=2026-04-25", headers=auth_headers)

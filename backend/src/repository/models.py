@@ -55,6 +55,7 @@ class TransactionTable(Base):
     note: Mapped[str] = mapped_column(Text, default="")
     date: Mapped[datetime.date] = mapped_column(nullable=False)
     type: Mapped[str] = mapped_column(String(10), nullable=False)
+    trade_no: Mapped[str] = mapped_column(String(64), default="", nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
 
     user: Mapped["UserTable"] = relationship("UserTable", back_populates="transactions")

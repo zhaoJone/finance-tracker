@@ -18,6 +18,7 @@ class Transaction(BaseModel):
     note: str = ""
     date: date
     type: Literal["income", "expense"]
+    trade_no: str = ""
     created_at: datetime
 
     model_config = {"str_strip_whitespace": True}

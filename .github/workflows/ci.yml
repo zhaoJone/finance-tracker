@@ -26,3 +26,25 @@ jobs:
         with: { node-version: "20" }
       - run: npm ci
       - run: make frontend-check
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-flutter@v4
+        with:
+          flutter-version: "3.24.5"
+          channel: "stable"
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Analyze Dart code
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test

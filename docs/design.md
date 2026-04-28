@@ -1,208 +1,199 @@
-### Phase 6：用户认证模块
+# Finance Tracker 设计规范
 
-#### 6.1 需求
-- 用户使用邮箱 + 密码注册/登录
-- 所有账单(Transaction)和分类(Category)必须属于某个用户
-- JWT Token 认证，Token 通过 HTTP Bearer 头传递
+## 概述
 
-#### 6.2 数据库改造
-**新增表：** `users`
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | UUID | PK |
-| email | VARCHAR(255) | 唯一索引 |
-| password_hash | VARCHAR(255) | bcrypt 哈希 |
-| created_at | DATETIME | 创建时间 |
+简洁高效的个人记账应用 UI/UX 设计规范，供 AI 编码助手（Claude Code 等）参考。
 
-**修改表：** `categories` → 新增 `user_id` 列（外键 → users.id）
-**修改表：** `transactions` → 新增 `user_id` 列（外键 → users.id）
+---
 
-#### 6.3 后端模块
+## 设计原则
 
-| 文件 | 说明 |
-|------|------|
-| `schemas/user.py` | User, UserCreate, UserLogin, Token, TokenData |
-| `repository/user.py` | create, get_by_email, get_by_id |
-| `service/auth.py` | hash_password, verify_password, create_access_token |
-| `api/auth.py` | POST /auth/register, POST /auth/login, GET /auth/me |
-| `api/dependencies.py` | get_current_user 依赖（从 JWT 提取 user_id）|
-| `alembic/` | 新迁移文件 |
+1. **黑白为主**：主色调使用深灰（`gray-900`），避免蓝色/紫色/粉色等亮色系
+2. **克制的卡片感**：依赖圆角 + `shadow-sm` 营造层次，避免粗边框
+3. **交互反馈**：按钮带 `active:scale-[0.98]` 点击反馈，hover 有阴影变化
+4. **空状态引导**：空数据时显示图标 + 说明文案，而非纯文字
 
-**认证流程：**
-1. `/auth/register` → 验证邮箱唯一 → 哈希密码 → 创建用户 → 返回 JWT
-2. `/auth/login` → 验证邮箱存在 → 验证密码 → 返回 JWT
-3. 所有业务 API → `get_current_user` 提取 Bearer Token → 注入 `user_id` 到请求
+---
 
-#### 6.4 前端模块
+## 色彩系统
 
-| 文件 | 说明 |
-|------|------|
-| `schemas/user.ts` | TS interfaces |
-| `hooks/useAuth.ts` | login, logout, currentUser 状态 |
-| `pages/LoginPage.tsx` | 登录/注册表单 |
-| `App.tsx` | /login 路由 + ProtectedRoute |
-| `api/client.ts` | axios 拦截器注入 Token |
+### 主色调
+- **Primary**: `bg-gray-900` / `hover:bg-gray-800`
+- **Focus Ring**: `focus:ring-gray-500`
 
-#### 6.5 影响范围
+### 辅助色
+- 白色背景卡片：`bg-white`
+- 边框：`border-gray-100`（卡片）/ `border-gray-200`（输入框）
+- 文字：`text-gray-900`（深）/ `text-gray-600`（中）/ `text-gray-400`（浅）
+- 成功/错误等语义色保留原色系（`green-*`、`red-*`）
 
-|| 文件 | 改动类型 |
-||------|----------|
-|| `backend/src/schemas/user.py` | 新建 |
-|| `backend/src/repository/user.py` | 新建 |
-|| `backend/src/service/auth.py` | 新建 |
-|| `backend/src/api/auth.py` | 新建 |
-|| `backend/src/api/dependencies.py` | 修改 |
-|| `backend/src/repository/models.py` | 修改（加 user_id 外键）|
-|| `backend/src/api/categories.py` | 修改（加 user_id 过滤）|
-|| `backend/src/api/transactions.py` | 修改（加 user_id 过滤）|
-|| `backend/src/api/stats.py` | 修改（加 user_id 过滤）|
-|| `backend/alembic/versions/` | 新迁移文件 |
-|| `frontend/src/schemas/user.ts` | 新建 |
-|| `frontend/src/hooks/useAuth.ts` | 新建 |
-|| `frontend/src/pages/LoginPage.tsx` | 新建 |
-|| `frontend/src/api/client.ts` | 新建 |
-|| `frontend/src/App.tsx` | 修改 |
-|| `frontend/src/pages/*.tsx` | 修改（添加登录校验）|
+### 收入/支出语义色
+- 收入：`text-green-600`
+- 支出：`text-gray-900`
 
-## Harness 进化日志
+---
 
-| 日期 | Agent 犯的错 | 根因 | Harness 响应 |
-|---|---|---|---|
-| 2026-04-16 | 目录 src/types/ 与 Python 标准库 types 模块同名 | Python 模块解析规则导致导入歧义 | 目录重命名为 schemas/，Linter 和 CLAUDE.md 同步更新 |
+## 组件规范
 
-## PostgreSQL 迁移实施计划
+### Button
 
-| 日期 | 决策 | 理由 |
-|---|---|---|
-| 2026-04-17 | 后端使用 python:3.12-alpine 多阶段构建 | 保持镜像小巧，非 root 用户运行 |
-| 2026-04-17 | 前端使用 node:20-alpine + nginx:alpine 多阶段构建 | 前端构建依赖 Node.js，生产只运行 Nginx |
-| 2026-04-17 | SQLite 持久化到 /app/data/finance.db | Docker 容器内数据不丢失，挂载 host 目录 |
-| 2026-04-17 | /api/ 通过 nginx 反向代理到 backend:8000/api/ | 前后端分离，Nginx 统一入口 |
-| 2026-04-17 | 后端 healthcheck 使用 /api/health 端点 | 避免与前端路由冲突 |
-| 2026-04-17 | 暴露端口 8080 而非 80 | 本地端口 80 已被占用 |
-| 2026-04-17 | 数据库迁移至 PostgreSQL + Alembic | 支持生产环境部署，版本化管理数据库结构 |
-| 2026-04-17 | 单元测试保留 SQLite+aiosqlite | CI 环境不依赖真实 PostgreSQL |
+```tsx
+// 基础样式
+"inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150
+ focus:outline-none focus:ring-2 focus:ring-offset-2
+ disabled:opacity-50 disabled:cursor-not-allowed
+ active:scale-[0.98]"
 
-### 子任务 1.1：依赖更新
-**文件：** `backend/pyproject.toml`
-- 添加：`asyncpg`、`alembic`、`sqlalchemy[asyncio]`
-- 保留测试依赖：`aiosqlite`（用于测试环境 SQLite 内存库）
+// Primary
+"bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-500 shadow-sm hover:shadow"
 
-### 子任务 1.2：数据库连接层
-**新建文件：** `backend/src/config/database.py`
-- 通过环境变量 `DATABASE_URL` 读取连接字符串
-- 默认值：`postgresql+asyncpg://postgres:mysecretpassword@127.0.0.1:5432/finance_tracker`
-- 提供 `get_db()` 依赖注入函数供 FastAPI 使用
+// Secondary / Outline / Ghost
+"bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-500"
+"border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500"
+"text-gray-600 hover:bg-gray-100 focus:ring-gray-500"
 
-### 子任务 1.3：SQLAlchemy ORM 模型
-**新建文件：** `backend/src/repository/models.py`
-- Table：`transactions`、`categories`
-- 与现有 Pydantic schemas 字段一致
-- **注意：** Category 表当前无 icon 字段（与 schema 定义不一致），迁移时保持现状
-
-### 子任务 1.4：Repository 层改造
-**改造文件：** `backend/src/repository/transaction.py`、`backend/src/repository/category.py`
-- 内部实现从 aiosqlite raw SQL 切换至 SQLAlchemy async session
-- **接口（方法签名）保持不变**，service 层零改动
-
-### 子任务 2： Alembic Migration
-**新建目录：** `backend/migrations/`
-- `alembic.ini`：sqlalchemy.url 从环境变量读取
-- `migrations/env.py`：导入 SQLAlchemy models，支持 autogenerate
-- `migrations/script.py.mako`：标准模板
-
-**Makefile 新增命令：**
-```makefile
-migrate:          # alembic upgrade head
-migrate-new:      # alembic revision --autogenerate -m "$(msg)"
-migrate-down:     # alembic downgrade -1
-migrate-history:  # alembic history
+// Danger
+"bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm hover:shadow"
 ```
 
-**FastAPI lifespan 改造：**
-```python
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    run_migrations()  # 启动时自动 upgrade head
-    yield
+### Card（页面内容块）
+
+```tsx
+className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"
 ```
 
-### 子任务 3：Docker Compose 更新
-**文件：** `docker-compose.yml`
-- 新增 `postgres` service（postgres:16-alpine）
-- 移除 `./data` volume，改用 `postgres_data` named volume
-- backend depends_on postgres healthcheck
-- backend 环境变量注入 DATABASE_URL
+### 卡片 hover 效果
 
-### 子任务 4：前端全面汉化
-**汉化范围：** 所有用户可见文字
-- 页面标题、导航菜单
-- 表单 label、placeholder、按钮文字
-- 错误提示、空状态提示、加载状态
-- 图表坐标轴标签、图例
-- 金额格式：¥X,XXX.XX（替换 $）
-- 日期格式：YYYY年MM月DD日
+```tsx
+className="... hover:shadow-md hover:border-gray-200 transition-all duration-150"
+```
 
-**不汉化：** 代码变量名、函数名、console.log、API 路径
+### Badge
 
-### 子任务 5：Category 管理功能
+```tsx
+// 圆角药丸形
+className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide"
 
-#### 5.1 后端 API 补全
-**文件：** `backend/src/api/categories.py`
+// 变体
+default: "bg-gray-100 text-gray-800"
+success: "bg-green-100 text-green-800"
+warning: "bg-yellow-100 text-yellow-800"
+error: "bg-red-100 text-red-800"
+info: "bg-blue-100 text-blue-800"
+```
 
-| 端点 | 方法 | 说明 |
+### Input / Select
+
+```tsx
+className="px-3 py-2 border border-gray-300 rounded-lg text-sm
+ focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900
+ transition-colors"
+```
+
+### 空状态组件
+
+```tsx
+<div className="flex flex-col items-center justify-center py-12 text-center
+  bg-white rounded-xl border border-gray-100 shadow-sm">
+  <div className="w-12 h-12 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+    {/* Heroicons outline 图标，strokeWidth={1.5} */}
+    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="..." />
+    </svg>
+  </div>
+  <p className="text-gray-500 font-medium">暂无XXX</p>
+  <p className="text-gray-400 text-sm mt-1">引导说明文案</p>
+</div>
+```
+
+---
+
+## 页面布局规范
+
+### TransactionsPage 筛选器
+
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4
+  bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+  {/* Select + Select + Month Input */}
+</div>
+```
+
+### 表单容器
+
+```tsx
+<div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+  <TransactionForm className="space-y-5" />
+</div>
+```
+
+---
+
+## 已知 Bug 与解决
+
+### TransactionForm categoryId 初始为空
+
+**问题**：首次打开表单时 `categoryId=""`，`!categoryId` 为 true 导致"创建"按钮永远禁用。
+
+**原因**：当 `type="expense"` 时 `filteredCategories` 只有一个"支出"分类，但 `categoryId` 未自动同步。
+
+**解法**：使用 `effectiveCategoryId` 计算属性，自动选中 `filteredCategories` 中唯一的分类。
+
+```tsx
+const effectiveCategoryId = (() => {
+  if (categoryId && filteredCategories.some((c) => c.id === categoryId)) return categoryId;
+  if (filteredCategories.length === 1) return filteredCategories[0].id;
+  if (categoryId === "" && filteredCategories.length > 0) return filteredCategories[0].id;
+  return categoryId;
+})();
+```
+
+### MonthlyChart 数据结构
+
+**问题**：`/api/stats/monthly` 返回单月对象 `{ year, month, income, expense }`，不是数组。
+
+**解法**：Dashboard 中包装为数组传入：`data={[monthlyData]}`
+
+### Vite Proxy 配置
+
+**问题**：前端独立运行时 API 请求（`/api/*`）需要代理到后端。
+
+**配置**（`vite.config.ts`）：
+
+```ts
+server: {
+  proxy: {
+    "/api": {
+      target: "http://localhost:8000",
+      changeOrigin: true,
+    },
+  },
+},
+```
+
+---
+
+## API 端点
+
+| 方法 | 路径 | 说明 |
 |------|------|------|
-| `/api/categories` | GET | 按 type 分组返回 |
-| `/api/categories` | POST | 创建分类 |
-| `/api/categories/{id}` | PUT | 更新名称/颜色 |
-| `/api/categories/{id}` | DELETE | 删除（有关联交易返回 409）|
+| GET | /api/health | 健康检查 |
+| GET | /api/categories | 分类列表 |
+| POST | /api/categories | 创建分类 |
+| PUT | /api/categories/{id} | 更新分类 |
+| DELETE | /api/categories/{id} | 删除分类 |
+| GET | /api/transactions | 交易列表（支持 type, category_id, start_date, end_date 筛选） |
+| POST | /api/transactions | 创建交易 |
+| PUT | /api/transactions/{id} | 更新交易 |
+| DELETE | /api/transactions/{id} | 删除交易 |
+| GET | /api/stats/monthly?year=&month= | 月度统计（返回单对象） |
+| GET | /api/stats/category?year=&month= | 分类统计 |
 
-**DELETE 409 场景：** 查询 `transactions` 表中是否有 `category_id = target_id`，有则返回冲突错误。
+---
 
-#### 5.2 前端页面
-**新建：** `frontend/src/pages/CategoriesPage.tsx`
-**新建：** `frontend/src/components/features/CategoryForm.tsx`（Drawer/Modal）
+## 环境变量
 
-**UI 规格：**
-- Tab 分组：收入类 / 支出类
-- 分类卡片：色块 + 名称 + 关联交易数量 + 编辑/删除图标
-- 新增按钮：页面右上角「+ 新增分类」
-- 空状态：插画 + 文字「暂无分类，点击右上角添加」
-
-**CategoryForm 字段：**
-1. 分类名称（必填，最多 10 字，实时字数）
-2. 类型（收入/支出，编辑时不可更改）
-3. 颜色选择器：12 个预设色块，选中态高亮 + 实时预览卡片
-
-**删除确认逻辑：**
-- 有关联交易：Toast 提示「该分类下有 X 笔交易，无法删除」
-- 无关联交易：二次确认弹窗
-
-**TransactionForm 改造：**
-- 分类下拉框末尾加「+ 管理分类」入口
-
-#### 5.3 导航入口
-**文件：** `frontend/src/App.tsx`
-- 新增「分类管理」菜单项（图标用标签图标）
-
-### 影响范围分析
-
-| 文件 | 改动类型 | 说明 |
-|------|----------|------|
-| `backend/pyproject.toml` | 修改 | 新增 3 个依赖 |
-| `backend/src/config/database.py` | 新建 | 数据库连接层 |
-| `backend/src/repository/models.py` | 新建 | SQLAlchemy ORM 模型 |
-| `backend/src/repository/transaction.py` | 重写 | 内部实现换 SQLAlchemy |
-| `backend/src/repository/category.py` | 重写 | 内部实现换 SQLAlchemy |
-| `backend/src/api/categories.py` | 扩展 | 补全 POST/PUT/DELETE |
-| `backend/src/api/main.py` | 修改 | lifespan 改用 Alembic |
-| `backend/alembic.ini` | 新建 | Alembic 配置 |
-| `backend/migrations/` | 新建 | Alembic 迁移脚本 |
-| `backend/Makefile` | 修改 | 新增 migrate 命令 |
-| `docker-compose.yml` | 修改 | 新增 postgres service |
-| `frontend/src/App.tsx` | 修改 | 新增导航入口 |
-| `frontend/src/pages/CategoriesPage.tsx` | 新建 | 分类管理页面 |
-| `frontend/src/components/features/CategoryForm.tsx` | 新建 | 分类表单组件 |
-| `frontend/src/pages/TransactionsPage.tsx` | 修改 | 分类下拉增加管理入口 |
-| `frontend/src/pages/DashboardPage.tsx` | 修改 | 汉化 |
-| `frontend/src/components/features/*.tsx` | 修改 | 汉化 |
+```env
+DATABASE_URL=postgresql+asyncpg://postgres:mysecretpassword@my-postgres:5432/finance_tracker
+ALEMBIC_INI=/opt/data/home/finance-tracker/backend/alembic.ini
+```

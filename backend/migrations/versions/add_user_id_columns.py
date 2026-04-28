@@ -26,14 +26,14 @@ def upgrade() -> None:
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('email', sa.String(length=255), nullable=False),
         sa.Column('password_hash', sa.String(length=255), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
+        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.current_timestamp()),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('email'),
     )
     op.create_index('ix_users_email', 'users', ['email'])
 
     # Insert system user to satisfy FK for existing rows
-    op.execute("INSERT INTO users (id, email, password_hash, created_at) VALUES ('00000000-0000-0000-0000-000000000000', 'system@placeholder', 'placeholder', NOW())")
+    op.execute("INSERT INTO users (id, email, password_hash, created_at) VALUES ('00000000-0000-0000-0000-000000000000', 'system@placeholder', 'placeholder', CURRENT_TIMESTAMP)")
 
     # Add user_id to categories (nullable first to avoid FK violation on existing rows)
     op.add_column('categories', sa.Column('user_id', sa.String(length=36), nullable=True))
