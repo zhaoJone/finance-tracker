@@ -11,12 +11,12 @@ from src.schemas.notification import ParsedNotification
 _ALIPAY_PATTERNS = [
     # 支出通知：您有一笔支出，金额¥128.50，收款商家：麦当劳，已完成。28/04 14:32
     re.compile(
-        r"【支付宝】您有一笔支出，金额￥?([\d,]+\.?\d*)，收款商家[：:](.+?)，(.+?)。(\d{1,2}/\d{1,2})\s+(\d{1,2}:\d{2})",
+        r"【支付宝】您有一笔支出，金额¥?￥?([\d,]+\.?\d*)，收款商家[：:](.+?)，(.+?)。(\d{1,2}/\d{1,2})\s+(\d{1,2}:\d{2})",
         re.UNICODE,
     ),
     # 收入通知：您有一笔收入，金额¥50.00，对方：张三，已完成。28/04 14:32
     re.compile(
-        r"【支付宝】您有一笔收入，金额￥?([\d,]+\.?\d*)，对方[：:](.+?)，(.+?)。(\d{1,2}/\d{1,2})\s+(\d{1,2}:\d{2})",
+        r"【支付宝】您有一笔收入，金额¥?￥?([\d,]+\.?\d*)，对方[：:](.+?)，(.+?)。(\d{1,2}/\d{1,2})\s+(\d{1,2}:\d{2})",
         re.UNICODE,
     ),
 ]
@@ -59,7 +59,7 @@ class AlipayParser(NotificationParser):
 
             amount = _parse_alipay_amount(amount_str)
             timestamp = _parse_alipay_datetime(date_str, time_str)
-            tx_type: str = "expense" if "支出" in raw_text[:10] else "income"
+            tx_type: str = "expense" if "支出" in raw_text else "income"
 
             # trade_no 从通知文本中提取（支付宝交易号格式：20位数字）
             trade_no_match = re.search(r"交易号[：:]?\s*(\d{20,})", raw_text)

@@ -10,7 +10,7 @@ from src.schemas.notification import ParsedNotification
 
 # 微信支付通知格式：微信支付，¥58.00，哆来茶，28/04/26 14:32:24支付完成
 _WECHAT_PATTERN = re.compile(
-    r"微信支付，￥?([\d,]+\.?\d*)，(.+?)，(\d{2}/\d{2}/\d{2})\s+(\d{2}:\d{2}:\d{2})支付完成",
+    r"微信支付，¥?￥?([\d,]+\.?\d*)，(.+?)，(\d{2}/\d{2}/\d{2})\s+(\d{2}:\d{2}:\d{2})支付完成",
     re.UNICODE,
 )
 
