@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'core/theme/app_colors.dart';
+import 'core/theme/app_theme.dart';
+import 'core/widgets/app_bottom_nav.dart';
 import 'injection.dart';
 import 'features/auth/presentation/auth_bloc.dart';
 import 'features/auth/presentation/auth_event.dart';
 import 'features/auth/presentation/auth_state.dart';
 import 'features/auth/presentation/login_page.dart';
-import 'features/home/home_page.dart';
+import 'features/home/presentation/home_page.dart';
+import 'features/home/presentation/home_bloc.dart';
+import 'features/bills/presentation/bills_page.dart';
+import 'features/bills/presentation/bills_bloc.dart';
+import 'features/categories/presentation/categories_page.dart';
+import 'features/categories/presentation/categories_bloc.dart';
+import 'features/profile/presentation/profile_page.dart';
+import 'features/profile/presentation/profile_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,29 +28,18 @@ class FinanceTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<AuthBloc>()..add(AuthCheckRequested()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => getIt<AuthBloc>()..add(AuthCheckRequested())),
+        BlocProvider(create: (_) => getIt<HomeBloc>()),
+        BlocProvider(create: (_) => getIt<BillsBloc>()),
+        BlocProvider(create: (_) => getIt<CategoriesBloc>()),
+        BlocProvider(create: (_) => getIt<ProfileBloc>()),
+      ],
       child: MaterialApp(
         title: 'Finance Tracker',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.black,
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
-            elevation: 0,
-          ),
-          filledButtonTheme: FilledButtonThemeData(
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ),
+        theme: AppTheme.lightTheme,
         home: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
             if (state is AuthInitial || state is AuthLoading) {
@@ -49,11 +48,69 @@ class FinanceTrackerApp extends StatelessWidget {
               );
             }
             if (state is AuthAuthenticated) {
-              return const HomePage();
+              return const MainShell();
             }
             return const LoginPage();
           },
         ),
+      ),
+    );
+  }
+}
+
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  int _currentIndex = 0;
+
+  static const List<Widget> _pages = [
+    HomePage(),
+    BillsPage(),
+    CategoriesPage(),
+    ProfilePage(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Finance Tracker'),
+        actions: [
+          BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              if (state is AuthAuthenticated) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        state.user.email,
+                        style: const TextStyle(fontSize: 13, color: AppColors.gray400),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
+      bottomNavigationBar: AppBottomNav(
+        selectedIndex: _currentIndex,
+        onItemSelected: (index) {
+          setState(() => _currentIndex = index);
+        },
       ),
     );
   }
