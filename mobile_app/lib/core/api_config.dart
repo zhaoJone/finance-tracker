@@ -9,7 +9,7 @@ class ApiConfig {
   /// 默认值用于 CI / 本地无配置时的回退
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:8000',
+    defaultValue: 'http://192.168.150.123:8000',
   );
 
   /// API 前缀
