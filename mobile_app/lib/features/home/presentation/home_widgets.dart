@@ -295,17 +295,22 @@ class RecentTransactionsSection extends StatelessWidget {
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              tx.categoryName ?? tx.note ?? '未分类',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray900),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tx.categoryName ?? '未分类',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray900),
+                          ),
+                          if (tx.note != null && tx.note!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(tx.note!, style: const TextStyle(fontSize: 12, color: AppColors.gray400), maxLines: 1, overflow: TextOverflow.ellipsis),
                             ),
-                            const SizedBox(height: 2),
-                            Text(_formatDate(tx.createdAt), style: const TextStyle(fontSize: 12, color: AppColors.gray400)),
-                          ],
-                        ),
+                          const SizedBox(height: 2),
+                          Text(_formatDate(tx.createdAt), style: const TextStyle(fontSize: 12, color: AppColors.gray400)),
+                        ],
+                      ),
                       ),
                       Text(
                         _formatAmount(tx.amount, tx.type),

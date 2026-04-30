@@ -33,7 +33,9 @@ class BillsBloc extends Bloc<BillsEvent, BillsState> {
       final txs = await _repository.listTransactions();
       emit(BillsLoaded(transactions: txs));
     } catch (e) {
-      emit(BillsError(e.toString()));
+      final lastState = state;
+      final lastTxs = lastState is BillsLoaded ? lastState.transactions : null;
+      emit(BillsError(e.toString(), lastTransactions: lastTxs));
     }
   }
 
@@ -43,7 +45,9 @@ class BillsBloc extends Bloc<BillsEvent, BillsState> {
       final txs = await _repository.listTransactions();
       emit(BillsLoaded(transactions: txs));
     } catch (e) {
-      emit(BillsError(e.toString()));
+      final lastState = state;
+      final lastTxs = lastState is BillsLoaded ? lastState.transactions : null;
+      emit(BillsError(e.toString(), lastTransactions: lastTxs));
     }
   }
 

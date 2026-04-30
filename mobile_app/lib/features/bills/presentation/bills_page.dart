@@ -30,12 +30,23 @@ class _BillsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<BillsBloc, BillsState>(
+    return BlocConsumer<BillsBloc, BillsState>(
+      listener: (context, state) {
+        if (state is BillsError && state.lastTransactions == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: AppColors.expenseRed500),
+          );
+        } else if (state is BillsError && state.lastTransactions != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.orange),
+          );
+        }
+      },
       builder: (context, state) {
         if (state is BillsLoading) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (state is BillsError) {
+        if (state is BillsError && state.lastTransactions == null) {
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -50,8 +61,14 @@ class _BillsBody extends StatelessWidget {
             ),
           );
         }
-        if (state is BillsLoaded) {
-          return _BillsContent(transactions: state.transactions, activeFilter: state.activeFilter);
+        if (state is BillsLoaded || (state is BillsError && state.lastTransactions != null)) {
+          final transactions = state is BillsLoaded
+              ? state.transactions
+              : (state as BillsError).lastTransactions!;
+          final activeFilter = state is BillsLoaded
+              ? state.activeFilter
+              : null;
+          return _BillsContent(transactions: transactions, activeFilter: activeFilter);
         }
         return const SizedBox.shrink();
       },
@@ -280,13 +297,13 @@ class _DateGroup extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              tx.note ?? tx.categoryName ?? '未分类',
+                              tx.categoryName ?? '未分类',
                               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray900),
                             ),
-                            if (tx.categoryName != null && tx.categoryName!.isNotEmpty)
+                            if (tx.note != null && tx.note!.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
-                                child: Text(tx.categoryName!, style: const TextStyle(fontSize: 12, color: AppColors.gray400)),
+                                child: Text(tx.note!, style: const TextStyle(fontSize: 12, color: AppColors.gray400), maxLines: 1, overflow: TextOverflow.ellipsis),
                               ),
                           ],
                         ),

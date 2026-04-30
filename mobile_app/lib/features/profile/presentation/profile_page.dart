@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -9,6 +10,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../auth/presentation/auth_bloc.dart';
 import '../../auth/presentation/auth_event.dart';
 import '../../auth/data/auth_models.dart';
+import '../../notifications/presentation/notification_import_bloc.dart';
 import '../../notifications/presentation/notification_import_page.dart';
 import 'profile_bloc.dart';
 import 'profile_event.dart';
@@ -185,7 +187,12 @@ class _ProfileContent extends StatelessWidget {
               child: const Text('新功能', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.incomeGreen600)),
             ),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const NotificationImportPage()),
+              MaterialPageRoute(
+                builder: (_) => BlocProvider.value(
+                  value: getIt<NotificationImportBloc>(),
+                  child: const NotificationImportPage(),
+                ),
+              ),
             ),
           ),
           const Divider(height: 1, indent: 56),

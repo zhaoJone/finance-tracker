@@ -122,12 +122,12 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                _typeToggle('expense', '支出', AppColors.expenseRed500),
+                _typeToggle('expense', '支出 🔴', AppColors.expenseRed500),
                 const SizedBox(width: AppSpacing.sm),
-                _typeToggle('income', '收入', AppColors.incomeGreen600),
+                _typeToggle('income', '收入 🟢', AppColors.incomeGreen600),
               ],
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.lg),
           ],
 
           // Name input with character counter

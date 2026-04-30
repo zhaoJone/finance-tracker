@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
-import '../../../../core/widgets/app_input.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/api_client.dart';
 import '../../../../core/api_config.dart';
@@ -161,7 +160,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                   controller: _amountController,
                   textAlign: TextAlign.center,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  autofocus: true,
+                  autofocus: false,
                   style: const TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
@@ -259,10 +258,33 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
             const SizedBox(height: AppSpacing.lg),
 
             // Note input
-            AppInput(
-              label: '备注（可选）',
-              hintText: '例如：午餐、交通费...',
+            const Text('备注（可选）', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray700)),
+            const SizedBox(height: AppSpacing.sm),
+            TextField(
               controller: _noteController,
+              textInputAction: TextInputAction.done,
+              textCapitalization: TextCapitalization.none,
+              decoration: InputDecoration(
+                hintText: '例如：午餐、交通费...',
+                hintStyle: const TextStyle(fontSize: 14, color: AppColors.gray400),
+                border: OutlineInputBorder(
+                  borderRadius: AppRadius.smRadius,
+                  borderSide: const BorderSide(color: AppColors.gray300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: AppRadius.smRadius,
+                  borderSide: const BorderSide(color: AppColors.gray300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: AppRadius.smRadius,
+                  borderSide: const BorderSide(color: AppColors.gray900, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                isDense: true,
+                filled: true,
+                fillColor: AppColors.gray50,
+              ),
+              style: const TextStyle(fontSize: 14, color: AppColors.gray900),
             ),
             const SizedBox(height: AppSpacing.lg),
 

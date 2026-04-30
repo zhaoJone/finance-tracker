@@ -24,9 +24,10 @@ class BillsLoaded extends BillsState {
 
 class BillsError extends BillsState {
   final String message;
+  final List<Transaction>? lastTransactions;
 
-  const BillsError(this.message);
+  const BillsError(this.message, {this.lastTransactions});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, lastTransactions];
 }
