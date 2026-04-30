@@ -51,7 +51,18 @@ async def list_transactions(
         category_id=category_id,
         tx_type=type,
     )
-    return success_response(data=[tx.model_dump(mode="json") for tx in transactions])
+
+    # 填充分类名称和颜色
+    category_repo = CategoryRepository(repo._session)
+    tx_dicts = []
+    for tx in transactions:
+        d = tx.model_dump(mode="json")
+        cat = await category_repo.get(tx.category_id)
+        if cat:
+            d["category_name"] = cat.name
+            d["category_color"] = cat.color
+        tx_dicts.append(d)
+    return success_response(data=tx_dicts)
 
 
 @router.post("")
@@ -73,7 +84,13 @@ async def create_transaction(
         created_at=now,
     )
     created = await repo.create(tx)
-    return success_response(data=created.model_dump(mode="json"), message="Transaction created")
+    # 填充分类名称和颜色
+    cat = await category_repo.get(tx.category_id)
+    d = created.model_dump(mode="json")
+    if cat:
+        d["category_name"] = cat.name
+        d["category_color"] = cat.color
+    return success_response(data=d, message="Transaction created")
 
 
 @router.put("/{tx_id}")

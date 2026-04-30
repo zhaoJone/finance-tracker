@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/app_bottom_nav.dart';
@@ -19,6 +20,7 @@ import 'features/profile/presentation/profile_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('zh_CN', null);
   await setupDependencies();
   runApp(const FinanceTrackerApp());
 }

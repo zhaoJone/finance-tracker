@@ -20,5 +20,7 @@ class Transaction(BaseModel):
     type: Literal["income", "expense"]
     trade_no: str = ""
     created_at: datetime
+    category_name: str = ""
+    category_color: str = ""
 
     model_config = {"str_strip_whitespace": True}
