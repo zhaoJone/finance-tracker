@@ -1,4 +1,4 @@
-/// 登录请求体
+/// 登录请求体（OAuth2 form）
 class LoginRequest {
   final String email;
   final String password;
@@ -6,6 +6,19 @@ class LoginRequest {
   LoginRequest({required this.email, required this.password});
 
   Map<String, dynamic> toFormData() => {
+        'email': email,
+        'password': password,
+      };
+}
+
+/// 注册请求体（JSON）
+class RegisterRequest {
+  final String email;
+  final String password;
+
+  RegisterRequest({required this.email, required this.password});
+
+  Map<String, dynamic> toJson() => {
         'email': email,
         'password': password,
       };

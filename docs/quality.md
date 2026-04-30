@@ -27,7 +27,7 @@
 | 模块 | 测试 | Dart 分析 | 状态 | 最后更新 |
 |---|---|---|---|---|
 | core/（ApiClient、injection） | - | ✅ | ✅ 已建立 | 2026-04-16 |
-| auth/（登录/注册） | - | ✅ | ✅ 已建立，UI 升级—使用 AppInput/AppButton 设计系统 | 2026-04-30 |
+|| auth/（登录/注册） | - | ✅ | ✅ 已建立，UI 升级—使用 AppInput/AppButton 设计系统，支持注册（邮箱+密码+确认密码校验） | 2026-04-30 |
 | notifications/（通知导入） | ✅ 9/9 | ✅ | ✅ 已建立（支持支付宝/微信/银行解析） | 2026-04-28 |
 | theme/（设计系统） | - | ✅ | ✅ 黑白灰设计系统 | 2026-04-29 |
 | widgets/（通用组件） | - | ✅ | ✅ AppCard/Button/Input/Badge/EmptyState/BottomNav（中文标签） | 2026-04-30 |

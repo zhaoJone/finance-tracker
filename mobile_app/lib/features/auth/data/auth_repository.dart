@@ -23,6 +23,20 @@ class AuthRepository {
     return token.accessToken;
   }
 
+  /// 注册，返回 access_token（自动登录）
+  Future<String> register(RegisterRequest request) async {
+    final response = await _client.dio.post(
+      ApiConfig.registerEndpoint,
+      data: request.toJson(),
+      options: Options(
+        contentType: 'application/json',
+      ),
+    );
+    final token = TokenResponse.fromJson(response.data as Map<String, dynamic>);
+    await _client.saveToken(token.accessToken);
+    return token.accessToken;
+  }
+
   /// 获取当前用户信息
   Future<User> getMe() async {
     final response = await _client.dio.get(ApiConfig.meEndpoint);

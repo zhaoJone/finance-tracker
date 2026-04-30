@@ -13,6 +13,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc(this._repository, this._client) : super(AuthInitial()) {
     on<AuthCheckRequested>(_onCheckRequested);
     on<AuthLoginRequested>(_onLoginRequested);
+    on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthLogoutRequested>(_onLogoutRequested);
   }
 
@@ -48,6 +49,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  Future<void> _onRegisterRequested(
+    AuthRegisterRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      await _repository.register(
+        RegisterRequest(email: event.email, password: event.password),
+      );
+      // Auto-login after register (same as web frontend)
+      final user = await _repository.getMe();
+      emit(AuthAuthenticated(user));
+    } catch (e) {
+      emit(AuthError(_extractError(e)));
+    }
+  }
+
   Future<void> _onLogoutRequested(
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
@@ -60,6 +78,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final msg = e.toString();
     if (msg.contains('401')) {
       return '邮箱或密码错误';
+    }
+    if (msg.contains('409')) {
+      return '该邮箱已被注册';
     }
     if (msg.contains('connection') || msg.contains('SocketException') || msg.contains('Connection')) {
       return '无法连接服务器 (${ApiConfig.baseUrl})';

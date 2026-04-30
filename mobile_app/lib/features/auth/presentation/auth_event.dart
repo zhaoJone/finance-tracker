@@ -21,5 +21,16 @@ class AuthLoginRequested extends AuthEvent {
   List<Object?> get props => [email, password];
 }
 
+/// 注册
+class AuthRegisterRequested extends AuthEvent {
+  final String email;
+  final String password;
+
+  const AuthRegisterRequested({required this.email, required this.password});
+
+  @override
+  List<Object?> get props => [email, password];
+}
+
 /// 登出
 class AuthLogoutRequested extends AuthEvent {}
