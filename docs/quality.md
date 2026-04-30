@@ -18,9 +18,9 @@
 | 模块 | 测试 | TS 严格 | 状态 | 最后更新 |
 |---|---|---|---|---|
 | schemas/ | ✅ | ✅ | ✅ 已建立 | 2026-04-16 |
-| hooks/ | ✅ | ✅ | ✅ 已建立（含 Category CRUD） | 2026-04-17 |
+| hooks/ | ✅ | ✅ | ✅ 已建立（含 Category CRUD + Transaction update/delete hooks） | 2026-04-30 |
 | components/ | - | ✅ | ✅ 已建立（含 CategoryForm） | 2026-04-17 |
-| pages/ | - | ✅ | ✅ 已建立（含 CategoriesPage） | 2026-04-17 |
+| pages/ | - | ✅ | ✅ 已建立（含 CategoriesPage + TransactionsPage 接入编辑/删除） | 2026-04-30 |
 | Docker | - | ✅ | ✅ 已建立 | 2026-04-17 |
 
 ## 移动端
@@ -32,6 +32,6 @@
 | theme/（设计系统） | - | ✅ | ✅ 黑白灰设计系统 | 2026-04-29 |
 | widgets/（通用组件） | - | ✅ | ✅ AppCard/Button/Input/Badge/EmptyState/BottomNav（中文标签，Android 系统导航栏自适应 padding） | 2026-04-30 |
 | home/（首页仪表盘） | - | ✅ | ✅ 左色条卡片 + 下拉刷新 + 月份导航 | 2026-04-30 |
-| bills/（交易列表） | - | ✅ | ✅ 下拉刷新 + Dismissible 滑动删除 + 分类选择 Sheet → 升级: 大号金额输入、分类4列网格按收入/支出筛选、日期选择器、条目显示备注+分类 | 2026-04-30 |
+| bills/（交易列表） | - | ✅ | ✅ 新增编辑功能：点击交易项弹出编辑 Sheet，支持修改分类和备注 | 2026-04-30 |
 | categories/（分类管理） | - | ✅ | ✅ Tab切换+网格+CRUD Sheet → 升级: 名称字数上限10字+计数器、颜色选择动画 | 2026-04-30 |
 | profile/（个人中心） | - | ✅ | ✅ 用户信息+退出 | 2026-04-29 |

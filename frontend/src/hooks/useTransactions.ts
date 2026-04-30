@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Transaction, TransactionCreate, TransactionFilter } from "@/schemas/transaction";
+import type { Transaction, TransactionCreate, TransactionUpdate, TransactionFilter } from "@/schemas/transaction";
 
 interface ApiResponse<T> {
   data: T;
@@ -56,6 +56,37 @@ export function useCreateTransaction() {
       fetchJson<Transaction>("/api/transactions", {
         method: "POST",
         body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+export function useUpdateTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: TransactionUpdate }) =>
+      fetchJson<Transaction>(`/api/transactions/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchJson<Transaction>(`/api/transactions/${id}`, {
+        method: "DELETE",
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });

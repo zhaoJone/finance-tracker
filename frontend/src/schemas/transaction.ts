@@ -18,6 +18,11 @@ export interface TransactionCreate {
   type: TransactionType;
 }
 
+export interface TransactionUpdate {
+  category_id?: string;
+  note?: string;
+}
+
 export interface TransactionFilter {
   start_date?: string;
   end_date?: string;

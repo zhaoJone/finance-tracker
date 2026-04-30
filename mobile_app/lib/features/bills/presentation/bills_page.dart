@@ -11,6 +11,7 @@ import 'bills_bloc.dart';
 import 'bills_event.dart';
 import 'bills_state.dart';
 import 'bills_sheets.dart';
+import 'edit_transaction_sheet.dart';
 
 class BillsPage extends StatelessWidget {
   const BillsPage({super.key});
@@ -279,43 +280,56 @@ class _DateGroup extends StatelessWidget {
                   onDismissed: (_) {
                     context.read<BillsBloc>().add(BillsDelete(id: tx.id));
                   },
-                  child: AppCard(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36, height: 36,
-                        decoration: BoxDecoration(
-                          color: _getCategoryColor(tx.categoryColor).withOpacity(0.15),
-                          borderRadius: AppRadius.fullRadius,
+                  child: GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.md)),
                         ),
-                        child: Center(child: Icon(Icons.circle, size: 14, color: _getCategoryColor(tx.categoryColor))),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              tx.categoryName ?? '未分类',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray900),
+                        builder: (_) => EditTransactionSheet(transaction: tx),
+                      );
+                    },
+                    child: AppCard(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36, height: 36,
+                            decoration: BoxDecoration(
+                              color: _getCategoryColor(tx.categoryColor).withOpacity(0.15),
+                              borderRadius: AppRadius.fullRadius,
                             ),
-                            if (tx.note != null && tx.note!.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(tx.note!, style: const TextStyle(fontSize: 12, color: AppColors.gray400), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              ),
-                          ],
-                        ),
+                            child: Center(child: Icon(Icons.circle, size: 14, color: _getCategoryColor(tx.categoryColor))),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  tx.categoryName ?? '未分类',
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray900),
+                                ),
+                                if (tx.note != null && tx.note!.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(tx.note!, style: const TextStyle(fontSize: 12, color: AppColors.gray400), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            _formatAmount(tx.amount, tx.type),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _amountColor(tx.type)),
+                          ),
+                        ],
                       ),
-                      Text(
-                        _formatAmount(tx.amount, tx.type),
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _amountColor(tx.type)),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ))),
+              )),
         ],
       ),
     );

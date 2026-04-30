@@ -37,6 +37,16 @@ class BillsDelete extends BillsEvent {
   List<Object?> get props => [id];
 }
 
+class BillsUpdate extends BillsEvent {
+  final String id;
+  final TransactionUpdate update;
+
+  const BillsUpdate({required this.id, required this.update});
+
+  @override
+  List<Object?> get props => [id, update];
+}
+
 class BillsFilter extends BillsEvent {
   final String? type;
 

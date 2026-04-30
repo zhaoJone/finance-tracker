@@ -67,3 +67,21 @@ class TransactionCreate {
         'note': note,
       };
 }
+
+class TransactionUpdate {
+  final int? amount;
+  final String? categoryId;
+  final String? note;
+  final String? date;
+  final String? type;
+
+  TransactionUpdate({this.amount, this.categoryId, this.note, this.date, this.type});
+
+  Map<String, dynamic> toJson() => {
+        if (amount != null) 'amount': amount,
+        if (categoryId != null) 'category_id': categoryId,
+        if (note != null) 'note': note,
+        if (date != null) 'date': date,
+        if (type != null) 'type': type,
+      };
+}

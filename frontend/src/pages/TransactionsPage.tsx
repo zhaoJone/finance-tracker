@@ -1,16 +1,19 @@
 import { useState } from "react";
-import { useTransactions, useCreateTransaction, useCategories } from "@/hooks";
+import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCategories } from "@/hooks";
 import { TransactionList, TransactionForm } from "@/components/features";
 import { Button, Select } from "@/components/ui";
-import type { TransactionFilter, Category } from "@/schemas";
+import type { TransactionFilter, Transaction, Category } from "@/schemas";
 
 export function TransactionsPage() {
   const [showForm, setShowForm] = useState(false);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [filters, setFilters] = useState<TransactionFilter>({});
 
   const { data: transactions = [], isLoading } = useTransactions({ filters });
   const { data: categoriesData } = useCategories();
   const createTransaction = useCreateTransaction();
+  const updateTransaction = useUpdateTransaction();
+  const deleteTransaction = useDeleteTransaction();
 
   const categories: Category[] = [
     ...(categoriesData?.income ?? []),
@@ -24,10 +27,36 @@ export function TransactionsPage() {
     }));
   };
 
-  const handleSubmit = async (data: Parameters<typeof createTransaction.mutate>[0]) => {
+  const handleCreate = async (data: Parameters<typeof createTransaction.mutate>[0]) => {
     await createTransaction.mutateAsync(data);
     setShowForm(false);
   };
+
+  const handleUpdate = async (data: Parameters<typeof createTransaction.mutate>[0]) => {
+    if (!editingTx) return;
+    await updateTransaction.mutateAsync({
+      id: editingTx.id,
+      data: { note: data.note, category_id: data.category_id },
+    });
+    setEditingTx(null);
+  };
+
+  const handleEdit = (tx: Transaction) => {
+    setEditingTx(tx);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("确定要删除这笔交易吗？")) return;
+    await deleteTransaction.mutateAsync(id);
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingTx(null);
+  };
+
+  const isSubmitting = createTransaction.isPending || updateTransaction.isPending;
 
   const typeOptions = [
     { value: "", label: "全部类型" },
@@ -44,8 +73,8 @@ export function TransactionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">交易记录</h1>
-        <Button onClick={() => setShowForm(!showForm)}>
-          {showForm ? "取消" : "添加交易"}
+        <Button onClick={() => { setShowForm(!showForm); setEditingTx(null); }}>
+          {showForm && !editingTx ? "取消" : "添加交易"}
         </Button>
       </div>
 
@@ -53,9 +82,10 @@ export function TransactionsPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
           <TransactionForm
             categories={categories}
-            onSubmit={handleSubmit}
-            onCancel={() => setShowForm(false)}
-            isLoading={createTransaction.isPending}
+            onSubmit={editingTx ? handleUpdate : handleCreate}
+            onCancel={handleCancel}
+            isLoading={isSubmitting}
+            initialData={editingTx ?? undefined}
           />
         </div>
       )}
@@ -96,7 +126,12 @@ export function TransactionsPage() {
       {isLoading ? (
         <div className="text-center py-8 text-gray-500">加载中...</div>
       ) : (
-        <TransactionList transactions={transactions} categories={categories} />
+        <TransactionList
+          transactions={transactions}
+          categories={categories}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
       )}
     </div>
   );

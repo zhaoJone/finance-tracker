@@ -9,6 +9,7 @@ class BillsBloc extends Bloc<BillsEvent, BillsState> {
   BillsBloc(this._repository) : super(BillsInitial()) {
     on<BillsLoad>(_onLoad);
     on<BillsCreate>(_onCreate);
+    on<BillsUpdate>(_onUpdate);
     on<BillsDelete>(_onDelete);
     on<BillsFilter>(_onFilter);
   }
@@ -31,6 +32,19 @@ class BillsBloc extends Bloc<BillsEvent, BillsState> {
     try {
       await _repository.createTransaction(event.transaction);
       final txs = await _repository.listTransactions();
+      emit(BillsLoaded(transactions: txs));
+    } catch (e) {
+      final lastState = state;
+      final lastTxs = lastState is BillsLoaded ? lastState.transactions : null;
+      emit(BillsError(e.toString(), lastTransactions: lastTxs));
+    }
+  }
+
+  Future<void> _onUpdate(BillsUpdate event, Emitter<BillsState> emit) async {
+    final now = DateTime.now();
+    try {
+      await _repository.updateTransaction(event.id, event.update);
+      final txs = await _repository.listTransactions(year: now.year, month: now.month);
       emit(BillsLoaded(transactions: txs));
     } catch (e) {
       final lastState = state;

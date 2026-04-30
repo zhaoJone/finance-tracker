@@ -47,8 +47,8 @@ class BillsRepository {
     return Transaction.fromJson(data['data'] as Map<String, dynamic>);
   }
 
-  Future<Transaction> updateTransaction(String id, TransactionCreate update) async {
-    final response = await _client.dio.patch(
+  Future<Transaction> updateTransaction(String id, TransactionUpdate update) async {
+    final response = await _client.dio.put(
       '${ApiConfig.transactionsEndpoint}/$id',
       data: update.toJson(),
     );
