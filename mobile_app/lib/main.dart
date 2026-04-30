@@ -43,7 +43,7 @@ class FinanceTrackerApp extends StatelessWidget {
         title: 'Finance Tracker',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        localizationsDelegates: [
+        localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,

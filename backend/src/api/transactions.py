@@ -69,6 +69,7 @@ async def list_transactions(
 async def create_transaction(
     body: TransactionCreate,
     repo: TransactionRepository = Depends(get_tx_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
     user: User = Depends(get_current_user),
 ) -> Any:
     """Create a new transaction for the current user."""

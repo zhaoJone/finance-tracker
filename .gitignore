@@ -22,3 +22,4 @@ build
 
 # Android build artifacts (NDK)
 **/.cxx/
+backend/.venv/
