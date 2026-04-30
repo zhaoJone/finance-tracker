@@ -8,7 +8,6 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../auth/presentation/auth_bloc.dart';
 import '../../auth/presentation/auth_event.dart';
-import '../../auth/presentation/auth_state.dart';
 import '../../auth/data/auth_models.dart';
 import 'profile_bloc.dart';
 import 'profile_event.dart';

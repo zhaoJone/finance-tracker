@@ -14,7 +14,7 @@ class AppButton extends StatefulWidget {
   final VoidCallback? onTap;
   final bool loading;
   final bool disabled;
-  final Widget? icon;
+  final IconData? icon;
   final double? width;
 
   const AppButton({

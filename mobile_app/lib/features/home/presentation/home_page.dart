@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../data/home_models.dart';
 import 'home_bloc.dart';
 import 'home_event.dart';
 import 'home_state.dart';
@@ -50,7 +49,16 @@ class _HomeBody extends StatelessWidget {
           );
         }
         if (state is HomeLoaded) {
-          return _DashboardContent(state: state);
+          return RefreshIndicator(
+            onRefresh: () async {
+              final now = DateTime.now();
+              final bloc = context.read<HomeBloc>();
+              // Wait for load to complete
+              await bloc.stream.firstWhere((s) => s is HomeLoaded || s is HomeError);
+              bloc.add(HomeLoad(year: now.year, month: now.month));
+            },
+            child: _DashboardContent(state: state),
+          );
         }
         return const SizedBox.shrink();
       },

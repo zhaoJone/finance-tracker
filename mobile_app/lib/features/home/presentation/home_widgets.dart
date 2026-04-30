@@ -6,7 +6,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/empty_state.dart';
-import '../../data/home_models.dart';
+import '../data/home_models.dart';
 
 class MonthNav extends StatelessWidget {
   final int year;
@@ -81,12 +81,26 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: AppColors.gray500)),
-          const SizedBox(height: AppSpacing.sm),
-          Text(_formatAmount(amount), style: AppTypography.amountLarge.copyWith(color: color)),
+          // Left color bar (vertical indicator)
+          Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 13, color: AppColors.gray500)),
+              const SizedBox(height: AppSpacing.xs),
+              Text(_formatAmount(amount), style: AppTypography.amountLarge.copyWith(color: color)),
+            ],
+          ),
         ],
       ),
     );
@@ -104,17 +118,31 @@ class _BalanceCard extends StatelessWidget {
     return '¥${formatter.format(yuan)}';
   }
 
+  Color get _barColor => amount >= 0 ? AppColors.balanceBlue500 : AppColors.expenseRed500;
+
+  Color get _textColor => amount >= 0 ? AppColors.balanceBlue600 : AppColors.expenseRed500;
+
   @override
   Widget build(BuildContext context) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Left color bar (vertical indicator)
+          Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(
+              color: _barColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
           const Text('结余', style: TextStyle(fontSize: 13, color: AppColors.gray500)),
+          const Spacer(),
           Text(
             _formatAmount(amount),
-            style: AppTypography.amountLarge.copyWith(color: AppColors.balanceBlue600),
+            style: AppTypography.amountLarge.copyWith(color: _textColor),
           ),
         ],
       ),

@@ -13,17 +13,17 @@ class AppBottomNav extends StatelessWidget {
   });
 
   static const List<_NavItem> _items = [
-    _NavItem(icon: Icons.dashboard_rounded, label: 'Home'),
-    _NavItem(icon: Icons.receipt_long_rounded, label: 'Bills'),
-    _NavItem(icon: Icons.category_rounded, label: 'Categories'),
-    _NavItem(icon: Icons.person_rounded, label: 'Profile'),
+    _NavItem(icon: Icons.dashboard_rounded, label: '首页'),
+    _NavItem(icon: Icons.receipt_long_rounded, label: '账单'),
+    _NavItem(icon: Icons.category_rounded, label: '分类'),
+    _NavItem(icon: Icons.person_rounded, label: '我的'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: AppSpacing.navHeight,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(
           top: BorderSide(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/widgets/app_card.dart';
@@ -84,7 +83,7 @@ class _BillsContentState extends State<_BillsContent> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: AppRadius.md),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.md)),
       ),
       builder: (_) => const AddTransactionSheet(),
     );
@@ -93,8 +92,14 @@ class _BillsContentState extends State<_BillsContent> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+          final bloc = context.read<BillsBloc>();
+          await bloc.stream.firstWhere((s) => s is BillsLoaded || s is BillsError);
+          bloc.add(const BillsLoad());
+        },
+        child: CustomScrollView(
+          slivers: [
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
@@ -147,6 +152,7 @@ class _BillsContentState extends State<_BillsContent> {
                   ),
                 ),
         ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.gray900,
@@ -241,7 +247,22 @@ class _DateGroup extends StatelessWidget {
           ),
           ...transactions.map((tx) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: AppCard(
+                child: Dismissible(
+                  key: ValueKey(tx.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: AppColors.expenseRed500,
+                      borderRadius: AppRadius.mdRadius,
+                    ),
+                    child: const Icon(Icons.delete_outline, color: Colors.white, size: 24),
+                  ),
+                  onDismissed: (_) {
+                    context.read<BillsBloc>().add(BillsDelete(id: tx.id));
+                  },
+                  child: AppCard(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Row(
                     children: [
@@ -270,13 +291,6 @@ class _DateGroup extends StatelessWidget {
                           ],
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () => context.read<BillsBloc>().add(BillsDelete(id: tx.id)),
-                        child: const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Icon(Icons.delete_outline, size: 18, color: AppColors.gray400),
-                        ),
-                      ),
                       Text(
                         _formatAmount(tx.amount, tx.type),
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _amountColor(tx.type)),
@@ -284,7 +298,7 @@ class _DateGroup extends StatelessWidget {
                     ],
                   ),
                 ),
-              )),
+              ))),
         ],
       ),
     );

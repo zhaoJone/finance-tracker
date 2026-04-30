@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../data/home_models.dart';
 import '../data/home_repository.dart';
 import 'home_event.dart';
 import 'home_state.dart';
@@ -27,7 +28,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(HomeLoaded(
         summary: results[0] as MonthlySummary,
         breakdown: results[1] as CategoryBreakdown,
-        recentTxs: results[2] as List,
+        recentTxs: (results[2] as List).cast<Transaction>(),
       ));
     } catch (e) {
       emit(HomeError(e.toString()));
@@ -46,7 +47,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(HomeLoaded(
         summary: results[0] as MonthlySummary,
         breakdown: results[1] as CategoryBreakdown,
-        recentTxs: results[2] as List,
+        recentTxs: (results[2] as List).cast<Transaction>(),
       ));
     } catch (e) {
       emit(HomeError(e.toString()));

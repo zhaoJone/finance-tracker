@@ -484,6 +484,59 @@ server: {
 | badge | 12px | Semibold(600) + 0.025em | 标签文字 |
 | amount-large | 24px | Bold(700) | Dashboard 金额数字 |
 
+### M.11 卡片视觉强化（左色条模式）🔴 新增
+
+> 参考 Web 前端 Dashboard 设计：使用左置竖条色块替代纯文字标签，增强金额类型辨识度。
+
+```dart
+┌───────────────────────────┐
+│ ▌ 本月收入               │  ← 左色条 + 标签
+│ ▌ ¥12,345.00             │  ← 金额（对应语义色）
+└───────────────────────────┘
+```
+
+**各类别卡片色条配置：**
+
+| 卡片类型 | 色条颜色 | 金额文字色 |
+|----------|---------|-----------|
+| 收入 | `incomeGreen500` | `incomeGreen600` |
+| 支出 | `expenseRed500` | `expenseRed500` |
+| 结余（正） | `balanceBlue500` | `balanceBlue600` |
+| 结余（负） | `expenseRed500` | `expenseRed500` |
+
+**色条规格：**
+- 宽度：4px（`w-1`），高度：20px（5倍于宽度）
+- 圆角：full（完全圆角）
+- 与卡片左内边距对齐
+
+**Flutter 实现示例：**
+```dart
+Row(
+  children: [
+    Container(
+      width: 4, height: 20,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    ),
+    const SizedBox(width: 12),
+    // 内容区域
+  ],
+)
+```
+
+### M.12 完善交互反馈（参考 Web 前端规范）
+
+| 交互 | 行为 |
+|------|------|
+| 卡片 hover/按下 | `scale(0.98)` 150ms 缩放动画 |
+| 交易项点击 | 底部弹出详情 Sheet（编辑/删除） |
+| 交易滑动删除 | Dismissible 组件，红色背景 + `delete_outline` 图标 |
+| 下拉刷新 | RefreshIndicator 包裹所有列表页 |
+| 空状态引导 | 48px 灰色圆形容器 + 24px 图标 + 标题 + 说明副文本 |
+| FAB 点击 | 底部弹出 BottomSheet，含完整表单 |
+
 ---
 
 ## 环境变量

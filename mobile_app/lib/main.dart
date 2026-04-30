@@ -68,22 +68,17 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  static const List<Widget> _pages = [
-    HomePage(),
-    BillsPage(),
-    CategoriesPage(),
-    ProfilePage(),
-  ];
+  static const List<String> _titles = ['仪表盘', '账单', '分类', '我的'];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Finance Tracker'),
+        title: Text(_titles[_currentIndex]),
         actions: [
           BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
-              if (state is AuthAuthenticated) {
+              if (state is AuthAuthenticated && _currentIndex == 3) {
                 return Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: Row(
@@ -104,7 +99,12 @@ class _MainShellState extends State<MainShell> {
       ),
       body: IndexedStack(
         index: _currentIndex,
-        children: _pages,
+        children: const [
+          HomePage(),
+          BillsPage(),
+          CategoriesPage(),
+          ProfilePage(),
+        ],
       ),
       bottomNavigationBar: AppBottomNav(
         selectedIndex: _currentIndex,
