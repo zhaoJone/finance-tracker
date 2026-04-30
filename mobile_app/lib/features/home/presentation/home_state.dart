@@ -14,7 +14,7 @@ class HomeLoading extends HomeState {}
 
 class HomeLoaded extends HomeState {
   final MonthlySummary summary;
-  final CategoryBreakdown breakdown;
+  final CategoryBreakdownResponse breakdown;
   final List<Transaction> recentTxs;
 
   const HomeLoaded({

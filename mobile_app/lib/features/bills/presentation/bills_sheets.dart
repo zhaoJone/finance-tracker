@@ -88,6 +88,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
           transaction: TransactionCreate(
             amount: amountFen,
             type: _type,
+            date: DateTime.now().toIso8601String().substring(0, 10),
             categoryId: _selectedCategoryId,
             note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
           ),

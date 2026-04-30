@@ -9,42 +9,47 @@ class HomeRepository {
 
   Future<MonthlySummary> getMonthlySummary({required int year, required int month}) async {
     final response = await _client.dio.get(
-      ApiConfig.transactionsEndpoint,
-      queryParameters: {
-        'year': year,
-        'month': month,
-        'summary': true,
-      },
+      '${ApiConfig.statsEndpoint}/monthly',
+      queryParameters: {'year': year, 'month': month},
     );
-    final data = response.data as Map<String, dynamic>;
-    return MonthlySummary.fromJson(data['data'] as Map<String, dynamic>);
+    final body = response.data as Map<String, dynamic>;
+    return MonthlySummary.fromJson(body['data'] as Map<String, dynamic>);
   }
 
-  Future<CategoryBreakdown> getCategoryBreakdown({required int year, required int month}) async {
+  Future<CategoryBreakdownResponse> getCategoryBreakdown({required int year, required int month}) async {
+    final startDate = '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-01';
+    final nextMonth = month == 12 ? 1 : month + 1;
+    final nextYear = month == 12 ? year + 1 : year;
+    final endDate = '${nextYear.toString().padLeft(4, '0')}-${nextMonth.toString().padLeft(2, '0')}-01';
+
     final response = await _client.dio.get(
-      ApiConfig.transactionsEndpoint,
+      '${ApiConfig.statsEndpoint}/by-category',
       queryParameters: {
-        'year': year,
-        'month': month,
-        'breakdown': true,
+        'start_date': startDate,
+        'end_date': endDate,
       },
     );
-    final data = response.data as Map<String, dynamic>;
-    return CategoryBreakdown.fromJson(data['data'] as Map<String, dynamic>);
+    final body = response.data as Map<String, dynamic>;
+    return CategoryBreakdownResponse.fromJson(body['data'] as Map<String, dynamic>);
   }
 
   Future<List<Transaction>> getRecentTransactions({required int year, required int month, int limit = 10}) async {
+    final startDate = '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-01';
+    final nextMonth = month == 12 ? 1 : month + 1;
+    final nextYear = month == 12 ? year + 1 : year;
+    final endDate = '${nextYear.toString().padLeft(4, '0')}-${nextMonth.toString().padLeft(2, '0')}-01';
+
     final response = await _client.dio.get(
       ApiConfig.transactionsEndpoint,
       queryParameters: {
-        'year': year,
-        'month': month,
+        'start_date': startDate,
+        'end_date': endDate,
         'limit': limit,
         'sort': '-created_at',
       },
     );
-    final data = response.data as Map<String, dynamic>;
-    final items = data['data'] as List;
+    final body = response.data as Map<String, dynamic>;
+    final items = body['data'] as List;
     return items.map((e) => Transaction.fromJson(e as Map<String, dynamic>)).toList();
   }
 }

@@ -52,9 +52,9 @@ class SummaryCards extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: _SummaryCard(label: '收入', amount: summary.totalIncome, color: AppColors.incomeGreen600)),
+            Expanded(child: _SummaryCard(label: '收入', amount: summary.income, color: AppColors.incomeGreen600)),
             const SizedBox(width: AppSpacing.md),
-            Expanded(child: _SummaryCard(label: '支出', amount: summary.totalExpense, color: AppColors.expenseRed500)),
+            Expanded(child: _SummaryCard(label: '支出', amount: summary.expense, color: AppColors.expenseRed500)),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
@@ -151,7 +151,7 @@ class _BalanceCard extends StatelessWidget {
 }
 
 class CategoryBreakdownSection extends StatelessWidget {
-  final CategoryBreakdown breakdown;
+  final CategoryBreakdownResponse breakdown;
 
   const CategoryBreakdownSection({super.key, required this.breakdown});
 
@@ -162,17 +162,17 @@ class CategoryBreakdownSection extends StatelessWidget {
       children: [
         const Text('分类统计', style: AppTypography.h2),
         const SizedBox(height: AppSpacing.md),
-        if (breakdown.items.isEmpty)
+        if (breakdown.categories.isEmpty)
           const EmptyState(icon: Icons.pie_chart_outline, title: '暂无分类数据')
         else
-          ...breakdown.items.map((item) => _CategoryBar(item: item)),
+          ...breakdown.categories.map((item) => _CategoryBar(item: item)),
       ],
     );
   }
 }
 
 class _CategoryBar extends StatelessWidget {
-  final CategorySummary item;
+  final CategoryBreakdownItem item;
 
   const _CategoryBar({required this.item});
 
@@ -183,10 +183,6 @@ class _CategoryBar extends StatelessWidget {
   }
 
   Color _getCategoryColor() {
-    if (item.categoryColor != null) {
-      final hex = item.categoryColor!.replaceAll('#', '');
-      if (hex.length == 6) return Color(int.parse('FF$hex', radix: 16));
-    }
     return AppColors.gray400;
   }
 
@@ -210,7 +206,7 @@ class _CategoryBar extends StatelessWidget {
                 ],
               ),
               Text(
-                '${item.percentage.toStringAsFixed(1)}%  ${_formatAmount(item.totalAmount)}',
+                '${item.percentage.toStringAsFixed(1)}%  ${_formatAmount(item.amount)}',
                 style: const TextStyle(fontSize: 13, color: AppColors.gray500),
               ),
             ],

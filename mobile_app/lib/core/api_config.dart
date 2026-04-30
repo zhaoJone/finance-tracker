@@ -22,6 +22,9 @@ class ApiConfig {
   static const String registerEndpoint = '/auth/register';
   static const String meEndpoint = '/auth/me';
 
+  /// 统计相关
+  static const String statsEndpoint = '/stats';
+
   /// 交易相关
   static const String transactionsEndpoint = '/transactions';
   static const String importEndpoint = '/transactions/import';

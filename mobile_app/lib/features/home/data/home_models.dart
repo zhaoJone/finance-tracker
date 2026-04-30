@@ -45,15 +45,15 @@ class Transaction {
 }
 
 class MonthlySummary {
-  final int totalIncome; // cents
-  final int totalExpense; // cents
+  final int income; // cents
+  final int expense; // cents
   final int balance; // cents
   final int year;
   final int month;
 
   MonthlySummary({
-    required this.totalIncome,
-    required this.totalExpense,
+    required this.income,
+    required this.expense,
     required this.balance,
     required this.year,
     required this.month,
@@ -61,8 +61,8 @@ class MonthlySummary {
 
   factory MonthlySummary.fromJson(Map<String, dynamic> json) {
     return MonthlySummary(
-      totalIncome: json['total_income'] as int,
-      totalExpense: json['total_expense'] as int,
+      income: json['income'] as int,
+      expense: json['expense'] as int,
       balance: json['balance'] as int,
       year: json['year'] as int,
       month: json['month'] as int,
@@ -70,44 +70,47 @@ class MonthlySummary {
   }
 }
 
-class CategorySummary {
+class CategoryBreakdownItem {
   final String categoryId;
   final String categoryName;
-  final String? categoryColor;
-  final int totalAmount; // cents
+  final int amount; // cents
   final double percentage;
 
-  CategorySummary({
+  CategoryBreakdownItem({
     required this.categoryId,
     required this.categoryName,
-    this.categoryColor,
-    required this.totalAmount,
+    required this.amount,
     required this.percentage,
   });
 
-  factory CategorySummary.fromJson(Map<String, dynamic> json) {
-    return CategorySummary(
+  factory CategoryBreakdownItem.fromJson(Map<String, dynamic> json) {
+    return CategoryBreakdownItem(
       categoryId: json['category_id'] as String,
       categoryName: json['category_name'] as String,
-      categoryColor: json['category_color'] as String?,
-      totalAmount: json['total_amount'] as int,
+      amount: json['amount'] as int,
       percentage: (json['percentage'] as num).toDouble(),
     );
   }
 }
 
-class CategoryBreakdown {
-  final String type; // 'income' | 'expense'
-  final List<CategorySummary> items;
+class CategoryBreakdownResponse {
+  final List<CategoryBreakdownItem> categories;
+  final int totalIncome;
+  final int totalExpense;
 
-  CategoryBreakdown({required this.type, required this.items});
+  CategoryBreakdownResponse({
+    required this.categories,
+    required this.totalIncome,
+    required this.totalExpense,
+  });
 
-  factory CategoryBreakdown.fromJson(Map<String, dynamic> json) {
-    return CategoryBreakdown(
-      type: json['type'] as String,
-      items: (json['items'] as List)
-          .map((e) => CategorySummary.fromJson(e as Map<String, dynamic>))
+  factory CategoryBreakdownResponse.fromJson(Map<String, dynamic> json) {
+    return CategoryBreakdownResponse(
+      categories: (json['categories'] as List)
+          .map((e) => CategoryBreakdownItem.fromJson(e as Map<String, dynamic>))
           .toList(),
+      totalIncome: json['total_income'] as int,
+      totalExpense: json['total_expense'] as int,
     );
   }
 }

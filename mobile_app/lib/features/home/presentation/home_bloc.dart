@@ -27,7 +27,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
       emit(HomeLoaded(
         summary: results[0] as MonthlySummary,
-        breakdown: results[1] as CategoryBreakdown,
+        breakdown: results[1] as CategoryBreakdownResponse,
         recentTxs: (results[2] as List).cast<Transaction>(),
       ));
     } catch (e) {
@@ -46,7 +46,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
       emit(HomeLoaded(
         summary: results[0] as MonthlySummary,
-        breakdown: results[1] as CategoryBreakdown,
+        breakdown: results[1] as CategoryBreakdownResponse,
         recentTxs: (results[2] as List).cast<Transaction>(),
       ));
     } catch (e) {

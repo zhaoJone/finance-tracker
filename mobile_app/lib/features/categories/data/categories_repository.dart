@@ -16,8 +16,11 @@ class CategoriesRepository {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
     final data = response.data as Map<String, dynamic>;
-    final items = data['data'] as List;
-    return items.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
+    final categoriesData = data['data'] as Map<String, dynamic>;
+    final incomeList = (categoriesData['income'] as List?) ?? [];
+    final expenseList = (categoriesData['expense'] as List?) ?? [];
+    final all = [...incomeList, ...expenseList];
+    return all.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<Category> createCategory(Category category) async {

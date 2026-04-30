@@ -49,10 +49,12 @@ class TransactionCreate {
   final String type; // 'income' | 'expense'
   final String? categoryId;
   final String? note;
+  final String date; // "YYYY-MM-DD"
 
   TransactionCreate({
     required this.amount,
     required this.type,
+    required this.date,
     this.categoryId,
     this.note,
   });
@@ -60,6 +62,7 @@ class TransactionCreate {
   Map<String, dynamic> toJson() => {
         'amount': amount,
         'type': type,
+        'date': date,
         'category_id': categoryId,
         'note': note,
       };

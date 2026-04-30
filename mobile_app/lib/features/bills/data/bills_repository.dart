@@ -20,8 +20,14 @@ class BillsRepository {
       'sort': '-created_at',
     };
     if (type != null) queryParams['type'] = type;
-    if (year != null) queryParams['year'] = year;
-    if (month != null) queryParams['month'] = month;
+    if (year != null && month != null) {
+      final startDate = '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-01';
+      final nextMonth = month == 12 ? 1 : month + 1;
+      final nextYear = month == 12 ? year + 1 : year;
+      final endDate = '${nextYear.toString().padLeft(4, '0')}-${nextMonth.toString().padLeft(2, '0')}-01';
+      queryParams['start_date'] = startDate;
+      queryParams['end_date'] = endDate;
+    }
 
     final response = await _client.dio.get(
       ApiConfig.transactionsEndpoint,
