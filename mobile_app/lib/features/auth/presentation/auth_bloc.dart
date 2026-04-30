@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/api_client.dart';
+import '../../../core/api_config.dart';
 import '../data/auth_models.dart';
 import '../data/auth_repository.dart';
 import 'auth_event.dart';
@@ -38,7 +39,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     try {
       await _repository.login(
-        LoginRequest(username: event.email, password: event.password),
+        LoginRequest(email: event.email, password: event.password),
       );
       final user = await _repository.getMe();
       emit(AuthAuthenticated(user));
@@ -56,12 +57,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   String _extractError(dynamic e) {
-    if (e.toString().contains('401')) {
+    final msg = e.toString();
+    if (msg.contains('401')) {
       return '邮箱或密码错误';
     }
-    if (e.toString().contains('connection')) {
-      return '无法连接服务器';
+    if (msg.contains('connection') || msg.contains('SocketException') || msg.contains('Connection')) {
+      return '无法连接服务器 (${ApiConfig.baseUrl})';
     }
-    return '登录失败，请重试';
+    return '登录失败: $msg';
   }
 }

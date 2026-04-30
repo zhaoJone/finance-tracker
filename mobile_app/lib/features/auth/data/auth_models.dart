@@ -1,12 +1,12 @@
 /// 登录请求体
 class LoginRequest {
-  final String username; // email
+  final String email;
   final String password;
 
-  LoginRequest({required this.username, required this.password});
+  LoginRequest({required this.email, required this.password});
 
   Map<String, dynamic> toFormData() => {
-        'username': username,
+        'email': email,
         'password': password,
       };
 }
