@@ -171,9 +171,9 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
                 size: 20,
               ),
               const SizedBox(width: 8),
-              Text(
+              const Text(
                 '通知监听',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.gray900),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.gray900),
               ),
               const Spacer(),
               Container(
@@ -194,9 +194,9 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
-          Text(
+          const Text(
             '自动捕获支付宝、微信支付通知，解析后添加到下方列表',
-            style: const TextStyle(fontSize: 12, color: AppColors.gray400, height: 1.4),
+            style: TextStyle(fontSize: 12, color: AppColors.gray400, height: 1.4),
           ),
           const SizedBox(height: AppSpacing.sm),
           Row(
