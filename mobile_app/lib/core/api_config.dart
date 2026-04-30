@@ -1,7 +1,7 @@
 /// API 常量与配置
 class ApiConfig {
   /// 后端 API 地址（Android 模拟器访问宿主机用 10.0.2.2）
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  static const String baseUrl = 'http://192.168.110.206:8000';
 
   /// API 前缀
   static const String apiPrefix = '/api';

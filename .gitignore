@@ -19,3 +19,6 @@ build
 
 # Claude Code settings (user-specific)
 .claude/
+
+# Android build artifacts (NDK)
+**/.cxx/
