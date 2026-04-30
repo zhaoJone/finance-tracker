@@ -115,7 +115,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       margin: const EdgeInsets.only(bottom: AppSpacing.lg),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: AppColors.expenseRed500.withValues(alpha: 0.1),
+                        color: AppColors.expenseRed500.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
