@@ -280,13 +280,13 @@ class _DateGroup extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              tx.categoryName ?? tx.note ?? '未分类',
+                              tx.note ?? tx.categoryName ?? '未分类',
                               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray900),
                             ),
-                            if (tx.note != null && tx.note!.isNotEmpty)
+                            if (tx.categoryName != null && tx.categoryName!.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
-                                child: Text(tx.note!, style: const TextStyle(fontSize: 12, color: AppColors.gray400)),
+                                child: Text(tx.categoryName!, style: const TextStyle(fontSize: 12, color: AppColors.gray400)),
                               ),
                           ],
                         ),

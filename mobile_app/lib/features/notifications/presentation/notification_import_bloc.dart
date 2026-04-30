@@ -12,6 +12,7 @@ class NotificationImportBloc
       : super(NotificationImportInitial()) {
     on<NotificationLoadDemo>(_onLoadDemo);
     on<NotificationAdd>(_onAdd);
+    on<NotificationIncoming>(_onIncoming);
     on<NotificationRemove>(_onRemove);
     on<NotificationImportConfirmed>(_onImportConfirmed);
     on<NotificationReset>(_onReset);
@@ -46,6 +47,16 @@ class NotificationImportBloc
   }
 
   void _onAdd(NotificationAdd event, Emitter<NotificationImportState> emit) {
+    final parsed = _repository.parseNotification(
+      rawText: event.rawText,
+      source: event.source,
+    );
+    if (parsed == null) return;
+    _notifications.add(parsed);
+    emit(NotificationImportLoaded(List.from(_notifications)));
+  }
+
+  void _onIncoming(NotificationIncoming event, Emitter<NotificationImportState> emit) {
     final parsed = _repository.parseNotification(
       rawText: event.rawText,
       source: event.source,

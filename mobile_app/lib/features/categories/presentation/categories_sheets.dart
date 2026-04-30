@@ -23,6 +23,9 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
   final _nameController = TextEditingController();
   late String _type;
   String? _selectedColor;
+  int _charCount = 0;
+  static const int _maxChars = 10;
+
   final List<String> _presetColors = [
     '#FF6B6B', '#FF8E53', '#FFCD56', '#4ECDC4',
     '#45B7D1', '#6C5CE7', '#A29BFE', '#FD79A8',
@@ -39,10 +42,24 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
     } else {
       _type = 'expense';
     }
+    _charCount = _nameController.text.length;
+    _nameController.addListener(_onNameChanged);
+  }
+
+  void _onNameChanged() {
+    final text = _nameController.text;
+    if (text.length > _maxChars) {
+      _nameController.text = text.substring(0, _maxChars);
+      _nameController.selection = TextSelection.fromPosition(
+        const TextPosition(offset: _maxChars),
+      );
+    }
+    setState(() => _charCount = _nameController.text.length);
   }
 
   @override
   void dispose() {
+    _nameController.removeListener(_onNameChanged);
     _nameController.dispose();
     super.dispose();
   }
@@ -85,9 +102,24 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(isEditing ? '编辑分类' : '添加分类', style: AppTypography.h2),
+          // Drag handle
+          Center(
+            child: Container(
+              width: 32, height: 4,
+              margin: const EdgeInsets.only(bottom: AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.gray300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Center(child: Text(isEditing ? '编辑分类' : '添加分类', style: AppTypography.h2)),
           const SizedBox(height: AppSpacing.lg),
-          if (!isEditing)
+
+          // Type toggle (only for new categories)
+          if (!isEditing) ...[
+            const Text('类型', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray700)),
+            const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
                 _typeToggle('expense', '支出', AppColors.expenseRed500),
@@ -95,9 +127,26 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
                 _typeToggle('income', '收入', AppColors.incomeGreen600),
               ],
             ),
-          if (!isEditing) const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.md),
+          ],
+
+          // Name input with character counter
           AppInput(label: '分类名称', hintText: '例如: 餐饮', controller: _nameController),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '$_charCount / $_maxChars',
+              style: TextStyle(
+                fontSize: 12,
+                color: _charCount >= _maxChars ? AppColors.expenseRed500 : AppColors.gray400,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
           const SizedBox(height: AppSpacing.md),
+
+          // Color selection
           const Text('颜色', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray700)),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
@@ -108,18 +157,24 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
               final isSelected = _selectedColor == colorHex;
               return GestureDetector(
                 onTap: () => setState(() => _selectedColor = colorHex),
-                child: Container(
-                  width: 32, height: 32,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: 34, height: 34,
                   decoration: BoxDecoration(
                     color: color,
                     shape: BoxShape.circle,
                     border: isSelected ? Border.all(color: AppColors.gray900, width: 2.5) : null,
+                    boxShadow: isSelected
+                        ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 2))]
+                        : null,
                   ),
                 ),
               );
             }).toList(),
           ),
           const SizedBox(height: AppSpacing.lg),
+
+          // Submit button
           SizedBox(
             width: double.infinity,
             child: AppButton(label: isEditing ? '保存' : '添加', onTap: _submit),
@@ -144,6 +199,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
             child: Text(label, style: TextStyle(
               color: isActive ? AppColors.surface : AppColors.gray700,
               fontWeight: FontWeight.w600,
+              fontSize: 14,
             )),
           ),
         ),

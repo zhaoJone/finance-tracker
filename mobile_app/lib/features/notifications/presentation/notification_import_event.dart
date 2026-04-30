@@ -21,6 +21,17 @@ class NotificationAdd extends NotificationImportEvent {
   List<Object?> get props => [rawText, source];
 }
 
+/// 接收来自 Android 原生通知监听的新通知
+class NotificationIncoming extends NotificationImportEvent {
+  final String source; // "alipay" | "wechat" | "bank"
+  final String rawText;
+
+  const NotificationIncoming({required this.source, required this.rawText});
+
+  @override
+  List<Object?> get props => [source, rawText];
+}
+
 /// 移除一条待导入通知
 class NotificationRemove extends NotificationImportEvent {
   final int index;

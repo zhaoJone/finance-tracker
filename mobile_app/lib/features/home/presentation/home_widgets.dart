@@ -93,13 +93,19 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 13, color: AppColors.gray500)),
-              const SizedBox(height: AppSpacing.xs),
-              Text(_formatAmount(amount), style: AppTypography.amountLarge.copyWith(color: color)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 13, color: AppColors.gray500)),
+                const SizedBox(height: AppSpacing.xs),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(_formatAmount(amount), style: AppTypography.amountLarge.copyWith(color: color)),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -140,9 +146,15 @@ class _BalanceCard extends StatelessWidget {
           const SizedBox(width: AppSpacing.md),
           const Text('结余', style: TextStyle(fontSize: 13, color: AppColors.gray500)),
           const Spacer(),
-          Text(
-            _formatAmount(amount),
-            style: AppTypography.amountLarge.copyWith(color: _textColor),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                _formatAmount(amount),
+                style: AppTypography.amountLarge.copyWith(color: _textColor),
+              ),
+            ),
           ),
         ],
       ),
