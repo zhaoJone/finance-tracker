@@ -41,7 +41,7 @@ class _AppButtonState extends State<AppButton> {
   Color get _backgroundColor {
     if (_isDisabled && widget.variant != AppButtonVariant.outline &&
         widget.variant != AppButtonVariant.ghost) {
-      return _primaryColor.withValues(alpha: 0.5);
+      return _primaryColor.withOpacity(0.5);
     }
     switch (widget.variant) {
       case AppButtonVariant.primary:

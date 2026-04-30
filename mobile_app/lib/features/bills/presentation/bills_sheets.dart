@@ -164,7 +164,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                       duration: const Duration(milliseconds: 150),
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                       decoration: BoxDecoration(
-                        color: isSelected ? _parseColor(cat.color).withValues(alpha: 0.15) : AppColors.gray100,
+                        color: isSelected ? _parseColor(cat.color).withOpacity(0.15) : AppColors.gray100,
                         borderRadius: AppRadius.fullRadius,
                         border: isSelected ? Border.all(color: _parseColor(cat.color), width: 1.5) : null,
                       ),

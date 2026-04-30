@@ -215,7 +215,7 @@ class _CategoryGrid extends StatelessWidget {
                 Container(
                   width: 40, height: 40,
                   decoration: BoxDecoration(
-                    color: _parseColor(cat.color).withValues(alpha: 0.15),
+                    color: _parseColor(cat.color).withOpacity(0.15),
                     borderRadius: AppRadius.fullRadius,
                   ),
                   child: Center(child: Icon(Icons.circle, size: 18, color: _parseColor(cat.color))),

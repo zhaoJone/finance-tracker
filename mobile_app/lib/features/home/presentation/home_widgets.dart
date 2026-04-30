@@ -278,7 +278,7 @@ class RecentTransactionsSection extends StatelessWidget {
                       Container(
                         width: 36, height: 36,
                         decoration: BoxDecoration(
-                          color: _getCategoryColor(tx.categoryColor).withValues(alpha: 0.15),
+                          color: _getCategoryColor(tx.categoryColor).withOpacity(0.15),
                           borderRadius: AppRadius.fullRadius,
                         ),
                         child: Center(
