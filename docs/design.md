@@ -539,9 +539,78 @@ Row(
 
 ---
 
-## 环境变量
+```
 
 ```env
 DATABASE_URL=postgresql+asyncpg://postgres:mysecretpassword@my-postgres:5432/finance_tracker
 ALEMBIC_INI=/opt/data/home/finance-tracker/backend/alembic.ini
 ```
+
+---
+
+## 通知导入分类改造（2026-05-01）
+
+### 问题
+当前通知导入页面只能输入一个「默认分类 ID」，所有通知统一归入同一分类，实际不可用。
+
+### 方案
+**商户聚合归类（方案④）+ 事后归档（方案②）混合策略：**
+
+1. 通知自动按 `counterparty`（商户名）分组，同商户只选一次分类
+2. 已有匹配规则的商户静默自动分类
+3. 无匹配的标记「未归类」，首页显示入口
+4. 未归类可批量处理
+
+### 数据表设计
+
+```sql
+category_match_rules
+├── id            UUID PRIMARY KEY
+├── user_id       UUID FK → users(id)
+├── keyword       VARCHAR(100) NOT NULL    -- 商户关键词（如"麦当劳"）
+├── category_id   UUID FK → categories(id)
+├── created_at    DATETIME NOT NULL
+└── UNIQUE(user_id, keyword)
+```
+
+### 后端新增接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/category-match-rules | 当前用户的匹配规则列表 |
+| POST | /api/category-match-rules | 创建匹配规则 |
+| DELETE | /api/category-match-rules/{id} | 删除匹配规则 |
+| GET | /api/transactions/unclassified | 未分类交易列表（category_id=NULL） |
+| PATCH | /api/transactions/batch-category | 批量修改交易分类 |
+| POST | /api/transactions/import | 改造：支持每条通知携带 category_id |
+
+### 后端迁移记录
+
+`category_match_rules` 表 + transactions 表的 `category_id` 改为可空（允许未分类）。
+
+### 流程图
+
+```
+通知捕获
+    ↓
+按 counterparty 分组
+    ↓
+查询 category_match_rules
+    ├─ 匹配 → 自动分配分类、自动导入
+    └─ 不匹配 → 展示给用户
+                  ↓
+         分组卡片 + 分类下拉
+                  ↓
+         用户选分类 → 导入
+                  ↓
+         可选: 保存为匹配规则（下次自动匹配）
+
+事后：首页入口「X 笔未归类」→ 批量选择分类
+```
+
+### 关键设计决策
+
+1. **`category_id` 允许 NULL**：交易表的外键原为 NOT NULL，本次改为可空，用于标记未分类交易。NULL 表示「未归类」。
+2. **移动端拉取分类列表**：页面加载时调 `GET /api/categories` 获取所有分类供下拉选择。
+3. **匹配规则按用户隔离**：每条规则属于一个用户，互不干扰。
+4. **保存规则可选**：用户在导入时选分类后，默认不保存规则，可按需勾选「记住这个分类」。

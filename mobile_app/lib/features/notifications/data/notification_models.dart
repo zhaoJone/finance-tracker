@@ -7,6 +7,7 @@ class ParsedNotification {
   final String counterparty;
   final DateTime timestamp;
   final String tradeNo;
+  String? categoryId; // 可选的分类 ID
 
   const ParsedNotification({
     required this.source,
@@ -16,6 +17,7 @@ class ParsedNotification {
     required this.counterparty,
     required this.timestamp,
     required this.tradeNo,
+    this.categoryId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -26,6 +28,7 @@ class ParsedNotification {
         'counterparty': counterparty,
         'timestamp': timestamp.toIso8601String(),
         'trade_no': tradeNo,
+        if (categoryId != null) 'category_id': categoryId,
       };
 
   factory ParsedNotification.fromJson(Map<String, dynamic> json) {
@@ -37,6 +40,7 @@ class ParsedNotification {
       counterparty: (json['counterparty'] as String?) ?? '',
       timestamp: DateTime.parse(json['timestamp'] as String),
       tradeNo: (json['trade_no'] as String?) ?? '',
+      categoryId: json['category_id'] as String?,
     );
   }
 }

@@ -7,7 +7,7 @@ abstract class NotificationImportEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// 加载（解析演示用）通知
+/// 加载演示通知 + 分类数据
 class NotificationLoadDemo extends NotificationImportEvent {}
 
 /// 添加一条手动输入的通知
@@ -40,6 +40,39 @@ class NotificationRemove extends NotificationImportEvent {
 
   @override
   List<Object?> get props => [index];
+}
+
+/// 设置某条通知的分类
+class NotificationSetCategory extends NotificationImportEvent {
+  final int index;
+  final String categoryId;
+
+  const NotificationSetCategory({required this.index, required this.categoryId});
+
+  @override
+  List<Object?> get props => [index, categoryId];
+}
+
+/// 设置某个商户组下所有通知的分类（对应商户聚合归类方案④）
+class NotificationSetGroupCategory extends NotificationImportEvent {
+  final String counterparty;
+  final String categoryId;
+
+  const NotificationSetGroupCategory({required this.counterparty, required this.categoryId});
+
+  @override
+  List<Object?> get props => [counterparty, categoryId];
+}
+
+/// 保存一条匹配规则（记住分类）
+class NotificationSaveRule extends NotificationImportEvent {
+  final String keyword;
+  final String categoryId;
+
+  const NotificationSaveRule({required this.keyword, required this.categoryId});
+
+  @override
+  List<Object?> get props => [keyword, categoryId];
 }
 
 /// 确认导入

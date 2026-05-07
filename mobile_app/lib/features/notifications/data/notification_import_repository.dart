@@ -3,6 +3,65 @@ import '../../../core/api_client.dart';
 import '../../../core/api_config.dart';
 import 'notification_models.dart';
 
+/// 匹配规则：关键词 → 分类
+class CategoryMatchRule {
+  final String id;
+  final String keyword;
+  final String categoryId;
+  final DateTime createdAt;
+
+  const CategoryMatchRule({
+    required this.id,
+    required this.keyword,
+    required this.categoryId,
+    required this.createdAt,
+  });
+
+  factory CategoryMatchRule.fromJson(Map<String, dynamic> json) {
+    return CategoryMatchRule(
+      id: json['id'] as String,
+      keyword: json['keyword'] as String,
+      categoryId: json['category_id'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+}
+
+/// CategoryMatchRule 数据仓库
+class CategoryMatchRuleRepository {
+  final ApiClient _client;
+
+  CategoryMatchRuleRepository(this._client);
+
+  /// 获取当前用户的所有匹配规则
+  Future<List<CategoryMatchRule>> list() async {
+    final response = await _client.dio.get(ApiConfig.matchRulesEndpoint);
+    final body = response.data as Map<String, dynamic>;
+    final items = body['data'] as List;
+    return items
+        .map((e) => CategoryMatchRule.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// 创建匹配规则
+  Future<CategoryMatchRule> create({
+    required String keyword,
+    required String categoryId,
+  }) async {
+    final response = await _client.dio.post(
+      ApiConfig.matchRulesEndpoint,
+      data: {'keyword': keyword, 'category_id': categoryId},
+    );
+    final body = response.data as Map<String, dynamic>;
+    return CategoryMatchRule.fromJson(body['data'] as Map<String, dynamic>);
+  }
+
+  /// 删除匹配规则（目前移动端暂不实现，可后续添加）
+  Future<void> delete(String id) async {
+    await _client.dio.delete('${ApiConfig.matchRulesEndpoint}/$id');
+  }
+}
+
 /// 解析支付宝通知文本
 /// 「【支付宝】您有一笔支出，金额¥128.50，收款商家：麦当劳，已完成。28/04 14:32」
 ParsedNotification? parseAlipayNotification(String text) {

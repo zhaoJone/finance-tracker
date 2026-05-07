@@ -24,6 +24,7 @@ class UserTable(Base):
 
     categories: Mapped[list["CategoryTable"]] = relationship("CategoryTable", back_populates="user")
     transactions: Mapped[list["TransactionTable"]] = relationship("TransactionTable", back_populates="user")
+    match_rules: Mapped[list["CategoryMatchRuleTable"]] = relationship("CategoryMatchRuleTable", back_populates="user")
 
 
 class CategoryTable(Base):
@@ -41,6 +42,24 @@ class CategoryTable(Base):
     transactions: Mapped[list["TransactionTable"]] = relationship(
         "TransactionTable", back_populates="category"
     )
+    match_rules: Mapped[list["CategoryMatchRuleTable"]] = relationship(
+        "CategoryMatchRuleTable", back_populates="category"
+    )
+
+
+class CategoryMatchRuleTable(Base):
+    """User-defined match rules: counterparty keyword → category."""
+
+    __tablename__ = "category_match_rules"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    keyword: Mapped[str] = mapped_column(String(100), nullable=False)
+    category_id: Mapped[str] = mapped_column(String(36), ForeignKey("categories.id"), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
+
+    user: Mapped["UserTable"] = relationship("UserTable", back_populates="match_rules")
+    category: Mapped["CategoryTable"] = relationship("CategoryTable", back_populates="match_rules")
 
 
 class TransactionTable(Base):

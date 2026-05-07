@@ -82,6 +82,7 @@ class TestDB:
             cls._sync_conn = None
         factory = cls.get_session_factory()
         async with factory() as session:
+            await session.execute(text("DELETE FROM category_match_rules"))
             await session.execute(text("DELETE FROM transactions"))
             await session.execute(text("DELETE FROM categories"))
             await session.execute(text("DELETE FROM users"))
@@ -125,6 +126,8 @@ def app() -> FastAPI:
     """Create FastAPI app with shared test database."""
     from src.api.auth import router as auth_router
     from src.api.categories import router as categories_router
+    from src.api.imports import router as imports_router
+    from src.api.rules import router as rules_router
     from src.api.stats import router as stats_router
     from src.api.transactions import router as transactions_router
     from src.config.database import get_db
@@ -134,12 +137,19 @@ def app() -> FastAPI:
     application.include_router(categories_router)
     application.include_router(stats_router)
     application.include_router(auth_router)
+    application.include_router(imports_router)
+    application.include_router(rules_router)
 
     async def get_test_session():
         """Get test SQLAlchemy session."""
         factory = TestDB.get_session_factory()
         async with factory() as session:
-            yield session
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
 
     application.dependency_overrides[get_db] = get_test_session
 
@@ -574,3 +584,198 @@ class TestStatsAPI:
         assert response.status_code == 200
         json = response.json()
         assert json["data"]["total_expense"] == 3000
+
+
+class TestImportNotificationsAPI:
+    """Tests for POST /api/transactions/import."""
+
+    def test_import_single_notification(self, client: TestClient, auth_headers: dict) -> None:
+        """Should create transactions from notifications."""
+        # First create a category
+        cat_id = str(uuid4())
+        TestDB.seed(
+            "INSERT INTO categories (id, name, color, type, user_id) VALUES (?, ?, ?, ?, ?)",
+            (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
+        )
+
+        now = datetime.now(timezone.utc).isoformat()
+        response = client.post(
+            f"/api/transactions/import?default_category_id={cat_id}",
+            json=[{
+                "source": "alipay",
+                "raw_text": "【支付宝】您有一笔支出，金额¥128.50，收款商家：麦当劳，已完成。28/04 14:32",
+                "amount": 12850,
+                "type": "expense",
+                "counterparty": "麦当劳",
+                "timestamp": now,
+                "trade_no": "test_trade_001",
+            }],
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        json = response.json()
+        assert json["data"]["created"] == 1
+        assert json["data"]["skipped"] == 0
+
+    def test_import_with_per_notification_category(self, client: TestClient, auth_headers: dict) -> None:
+        """Should use per-notification category_id when provided."""
+        cat_id = str(uuid4())
+        TestDB.seed(
+            "INSERT INTO categories (id, name, color, type, user_id) VALUES (?, ?, ?, ?, ?)",
+            (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
+        )
+
+        now = datetime.now(timezone.utc).isoformat()
+        response = client.post(
+            f"/api/transactions/import?default_category_id={cat_id}",
+            json=[{
+                "source": "alipay",
+                "raw_text": "【支付宝】您有一笔支出，金额¥128.50，收款商家：麦当劳，已完成。28/04 14:32",
+                "amount": 12850,
+                "type": "expense",
+                "counterparty": "麦当劳",
+                "timestamp": now,
+                "trade_no": "test_trade_002",
+                "category_id": cat_id,
+            }],
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        json = response.json()
+        assert json["data"]["created"] == 1
+
+    def test_import_duplicate_dedup(self, client: TestClient, auth_headers: dict) -> None:
+        """Should skip duplicate by trade_no."""
+        cat_id = str(uuid4())
+        TestDB.seed(
+            "INSERT INTO categories (id, name, color, type, user_id) VALUES (?, ?, ?, ?, ?)",
+            (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
+        )
+
+        now = datetime.now(timezone.utc).isoformat()
+        notification = {
+            "source": "alipay",
+            "raw_text": "【支付宝】您有一笔支出，金额¥128.50，收款商家：麦当劳，已完成。28/04 14:32",
+            "amount": 12850,
+            "type": "expense",
+            "counterparty": "麦当劳",
+            "timestamp": now,
+            "trade_no": "dup_trade_001",
+        }
+
+        # First import
+        client.post(
+            f"/api/transactions/import?default_category_id={cat_id}",
+            json=[notification],
+            headers=auth_headers,
+        )
+
+        # Second import (dedup)
+        response = client.post(
+            f"/api/transactions/import?default_category_id={cat_id}",
+            json=[notification],
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        json = response.json()
+        assert json["data"]["created"] == 0
+        assert json["data"]["skipped"] == 1
+
+    def test_import_invalid_category(self, client: TestClient, auth_headers: dict) -> None:
+        """Should return error when default_category_id is invalid."""
+        now = datetime.now(timezone.utc).isoformat()
+        response = client.post(
+            f"/api/transactions/import?default_category_id={uuid4()}",
+            json=[{
+                "source": "alipay",
+                "raw_text": "test",
+                "amount": 1000,
+                "type": "expense",
+                "counterparty": "麦当劳",
+                "timestamp": now,
+                "trade_no": "test_003",
+            }],
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert response.json()["code"] == "CATEGORY_NOT_FOUND"
+
+
+class TestCategoryMatchRulesAPI:
+    """Tests for GET/POST/DELETE /api/category-match-rules."""
+
+    def test_list_rules_empty(self, client: TestClient, auth_headers: dict) -> None:
+        """Should return empty list when no rules exist."""
+        response = client.get("/api/category-match-rules", headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json()["data"] == []
+
+    def test_create_and_list_rule(self, client: TestClient, auth_headers: dict) -> None:
+        """Should create a rule and list it."""
+        cat_id = str(uuid4())
+        TestDB.seed(
+            "INSERT INTO categories (id, name, color, type, user_id) VALUES (?, ?, ?, ?, ?)",
+            (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
+        )
+
+        response = client.post(
+            "/api/category-match-rules",
+            json={"keyword": "麦当劳", "category_id": cat_id},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["data"]["keyword"] == "麦当劳"
+
+        # List should include the new rule
+        list_resp = client.get("/api/category-match-rules", headers=auth_headers)
+        assert len(list_resp.json()["data"]) == 1
+
+    def test_create_duplicate_rule(self, client: TestClient, auth_headers: dict) -> None:
+        """Should return 409 for duplicate keyword."""
+        cat_id = str(uuid4())
+        TestDB.seed(
+            "INSERT INTO categories (id, name, color, type, user_id) VALUES (?, ?, ?, ?, ?)",
+            (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
+        )
+
+        client.post(
+            "/api/category-match-rules",
+            json={"keyword": "麦当劳", "category_id": cat_id},
+            headers=auth_headers,
+        )
+
+        response = client.post(
+            "/api/category-match-rules",
+            json={"keyword": "麦当劳", "category_id": cat_id},
+            headers=auth_headers,
+        )
+        assert response.status_code == 409
+        assert response.json()["code"] == "RULE_EXISTS"
+
+    def test_delete_rule(self, client: TestClient, auth_headers: dict) -> None:
+        """Should delete a rule."""
+        cat_id = str(uuid4())
+        TestDB.seed(
+            "INSERT INTO categories (id, name, color, type, user_id) VALUES (?, ?, ?, ?, ?)",
+            (cat_id, "Food", "#FF9800", "expense", TestDB._test_user_id),
+        )
+
+        create_resp = client.post(
+            "/api/category-match-rules",
+            json={"keyword": "麦当劳", "category_id": cat_id},
+            headers=auth_headers,
+        )
+        rule_id = create_resp.json()["data"]["id"]
+
+        delete_resp = client.delete(f"/api/category-match-rules/{rule_id}", headers=auth_headers)
+        assert delete_resp.status_code == 200
+
+        # List should be empty
+        list_resp = client.get("/api/category-match-rules", headers=auth_headers)
+        assert list_resp.json()["data"] == []
+
+    def test_delete_nonexistent_rule(self, client: TestClient, auth_headers: dict) -> None:
+        """Should return 404 when deleting nonexistent rule."""
+        response = client.delete(f"/api/category-match-rules/{uuid4()}", headers=auth_headers)
+        assert response.status_code == 404
+        assert response.json()["code"] == "RULE_NOT_FOUND"

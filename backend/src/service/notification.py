@@ -8,8 +8,10 @@ from uuid import UUID, uuid4
 
 from src.parsers import AlipayParser, NotificationParser, WeChatParser
 from src.repository import CategoryRepository, TransactionRepository
+from src.repository.category_match_rule import CategoryMatchRuleRepository
 from src.schemas import Transaction
 from src.schemas.notification import ParsedNotification
+from src.service.category_matcher import CategoryMatcher
 
 
 class NotificationService:
@@ -19,9 +21,11 @@ class NotificationService:
         self,
         tx_repo: TransactionRepository,
         category_repo: CategoryRepository,
+        rule_repo: CategoryMatchRuleRepository | None = None,
     ) -> None:
         self._tx_repo = tx_repo
         self._category_repo = category_repo
+        self._matcher = CategoryMatcher(rule_repo) if rule_repo else None
         self._parsers: list[NotificationParser] = [
             AlipayParser(),
             WeChatParser(),
@@ -47,6 +51,45 @@ class NotificationService:
         )
         return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
+    async def _precompute_category_ids(
+        self,
+        notifications: list[ParsedNotification],
+        user_id_str: str,
+        default_category_id: UUID,
+    ) -> dict[int, UUID]:
+        """Pre-compute category_id for each notification index.
+        
+        优先级：
+        1. notification.category_id（移动端指定）
+        2. 规则匹配（keyword → category_id）
+        3. default_category_id（API 参数）
+        """
+        # Collect unique counterparties for batch matching
+        unique_keywords = set()
+        for n in notifications:
+            if n.category_id is None and n.counterparty:
+                unique_keywords.add(n.counterparty)
+
+        # Batch match all counterparties
+        matched_rules: dict[str, UUID] = {}
+        if self._matcher and unique_keywords:
+            results = await self._matcher.match_all(user_id_str, list(unique_keywords))
+            for kw, rule in results.items():
+                if rule is not None:
+                    matched_rules[kw] = rule.category_id
+
+        # Build result map
+        result: dict[int, UUID] = {}
+        for i, n in enumerate(notifications):
+            if n.category_id is not None:
+                result[i] = n.category_id
+            elif n.counterparty in matched_rules:
+                result[i] = matched_rules[n.counterparty]
+            else:
+                result[i] = default_category_id
+
+        return result
+
     async def import_notifications(
         self,
         notifications: list[ParsedNotification],
@@ -62,22 +105,32 @@ class NotificationService:
         created = 0
         skipped = 0
         errors: list[str] = []
+        user_id_str = str(user_id)
 
-        for notification in notifications:
+        # Pre-compute all category IDs before the loop
+        cat_ids = await self._precompute_category_ids(
+            notifications=notifications,
+            user_id_str=user_id_str,
+            default_category_id=default_category_id,
+        )
+
+        for i, notification in enumerate(notifications):
             dedup_key = self._make_dedup_key(notification)
 
             # 去重检查
-            existing = await self._tx_repo.find_by_trade_no(dedup_key, str(user_id))
+            existing = await self._tx_repo.find_by_trade_no(dedup_key, user_id_str)
             if existing is not None:
                 skipped += 1
                 continue
+
+            category_id = cat_ids[i]
 
             try:
                 tx = Transaction(
                     id=uuid4(),
                     user_id=user_id,
                     amount=notification.amount,
-                    category_id=default_category_id,
+                    category_id=category_id,
                     note=f"[{notification.source}] {notification.counterparty}",
                     date=notification.timestamp.date(),
                     type=notification.type,

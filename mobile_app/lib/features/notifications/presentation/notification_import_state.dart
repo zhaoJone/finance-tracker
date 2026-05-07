@@ -1,5 +1,6 @@
-import 'package:equatable/equatable.dart';
+import '../../../categories/data/categories_models.dart';
 import '../data/notification_models.dart';
+import 'package:equatable/equatable.dart';
 
 abstract class NotificationImportState extends Equatable {
   const NotificationImportState();
@@ -12,11 +13,17 @@ class NotificationImportInitial extends NotificationImportState {}
 
 class NotificationImportLoaded extends NotificationImportState {
   final List<ParsedNotification> notifications;
+  final List<Category> categories;
+  final String defaultCategoryId;
 
-  const NotificationImportLoaded(this.notifications);
+  const NotificationImportLoaded({
+    required this.notifications,
+    required this.categories,
+    this.defaultCategoryId = '',
+  });
 
   @override
-  List<Object?> get props => [notifications];
+  List<Object?> get props => [notifications, categories, defaultCategoryId];
 }
 
 class NotificationImportLoading extends NotificationImportState {}

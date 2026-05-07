@@ -1,4 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../categories/data/categories_models.dart';
+import '../../../categories/data/categories_repository.dart';
 import '../data/notification_models.dart';
 import '../data/notification_import_repository.dart';
 import 'notification_import_event.dart';
@@ -7,22 +9,40 @@ import 'notification_import_state.dart';
 class NotificationImportBloc
     extends Bloc<NotificationImportEvent, NotificationImportState> {
   final NotificationImportRepository _repository;
+  final CategoriesRepository _categoriesRepo;
+  final CategoryMatchRuleRepository _ruleRepo;
+  List<ParsedNotification> _notifications = [];
+  List<Category> _categories = [];
+  String _defaultCategoryId = '';
 
-  NotificationImportBloc(this._repository)
-      : super(NotificationImportInitial()) {
+  NotificationImportBloc(
+    this._repository,
+    this._categoriesRepo,
+    this._ruleRepo,
+  ) : super(NotificationImportInitial()) {
     on<NotificationLoadDemo>(_onLoadDemo);
     on<NotificationAdd>(_onAdd);
     on<NotificationIncoming>(_onIncoming);
     on<NotificationRemove>(_onRemove);
+    on<NotificationSetCategory>(_onSetCategory);
+    on<NotificationSetGroupCategory>(_onSetGroupCategory);
+    on<NotificationSaveRule>(_onSaveRule);
     on<NotificationImportConfirmed>(_onImportConfirmed);
     on<NotificationReset>(_onReset);
   }
 
-  List<ParsedNotification> _notifications = [];
+  Future<void> _onLoadDemo(
+    NotificationLoadDemo event,
+    Emitter<NotificationImportState> emit,
+  ) async {
+    // Load categories first
+    try {
+      _categories = await _categoriesRepo.listCategories();
+    } catch (_) {
+      _categories = [];
+    }
 
-  void _onLoadDemo(NotificationLoadDemo event, Emitter<NotificationImportState> emit) {
     _notifications = [
-      // 支付宝演示
       ParsedNotification(
         source: 'alipay',
         rawText: '【支付宝】您有一笔支出，金额¥128.50，收款商家：麦当劳，已完成。28/04 14:32',
@@ -32,7 +52,6 @@ class NotificationImportBloc
         timestamp: DateTime(2025, 4, 28, 14, 32),
         tradeNo: 'demo_alipay_001',
       ),
-      // 微信演示
       ParsedNotification(
         source: 'wechat',
         rawText: '微信支付，¥58.00，哆来茶，28/04/26 14:32:24支付完成',
@@ -43,7 +62,34 @@ class NotificationImportBloc
         tradeNo: 'demo_wechat_001',
       ),
     ];
-    emit(NotificationImportLoaded(List.from(_notifications)));
+
+    // Try to apply match rules
+    await _applyMatchRules();
+
+    emit(NotificationImportLoaded(
+      notifications: List.from(_notifications),
+      categories: _categories,
+      defaultCategoryId: _defaultCategoryId,
+    ));
+  }
+
+  /// 尝试用匹配规则自动分配分类
+  Future<void> _applyMatchRules() async {
+    try {
+      final rules = await _ruleRepo.list();
+      if (rules.isEmpty) return;
+      for (final n in _notifications) {
+        if (n.categoryId != null) continue;
+        final matchedRules = rules.where(
+          (r) => n.counterparty.contains(r.keyword) || r.keyword.contains(n.counterparty),
+        );
+        if (matchedRules.isNotEmpty) {
+          n.categoryId = matchedRules.first.categoryId;
+        }
+      }
+    } catch (_) {
+      // 规则加载失败不影响核心功能
+    }
   }
 
   void _onAdd(NotificationAdd event, Emitter<NotificationImportState> emit) {
@@ -53,24 +99,90 @@ class NotificationImportBloc
     );
     if (parsed == null) return;
     _notifications.add(parsed);
-    emit(NotificationImportLoaded(List.from(_notifications)));
+    emit(NotificationImportLoaded(
+      notifications: List.from(_notifications),
+      categories: _categories,
+      defaultCategoryId: _defaultCategoryId,
+    ));
   }
 
-  void _onIncoming(NotificationIncoming event, Emitter<NotificationImportState> emit) {
+  void _onIncoming(
+    NotificationIncoming event,
+    Emitter<NotificationImportState> emit,
+  ) {
     final parsed = _repository.parseNotification(
       rawText: event.rawText,
       source: event.source,
     );
     if (parsed == null) return;
     _notifications.add(parsed);
-    emit(NotificationImportLoaded(List.from(_notifications)));
+
+    // Try match rules
+    _applyMatchRules();
+
+    emit(NotificationImportLoaded(
+      notifications: List.from(_notifications),
+      categories: _categories,
+      defaultCategoryId: _defaultCategoryId,
+    ));
   }
 
-  void _onRemove(NotificationRemove event, Emitter<NotificationImportState> emit) {
+  void _onRemove(
+    NotificationRemove event,
+    Emitter<NotificationImportState> emit,
+  ) {
     if (event.index >= 0 && event.index < _notifications.length) {
       _notifications.removeAt(event.index);
     }
-    emit(NotificationImportLoaded(List.from(_notifications)));
+    emit(NotificationImportLoaded(
+      notifications: List.from(_notifications),
+      categories: _categories,
+      defaultCategoryId: _defaultCategoryId,
+    ));
+  }
+
+  void _onSetCategory(
+    NotificationSetCategory event,
+    Emitter<NotificationImportState> emit,
+  ) {
+    if (event.index >= 0 && event.index < _notifications.length) {
+      _notifications[event.index].categoryId = event.categoryId;
+    }
+    emit(NotificationImportLoaded(
+      notifications: List.from(_notifications),
+      categories: _categories,
+      defaultCategoryId: _defaultCategoryId,
+    ));
+  }
+
+  void _onSetGroupCategory(
+    NotificationSetGroupCategory event,
+    Emitter<NotificationImportState> emit,
+  ) {
+    for (final n in _notifications) {
+      if (n.counterparty == event.counterparty) {
+        n.categoryId = event.categoryId;
+      }
+    }
+    emit(NotificationImportLoaded(
+      notifications: List.from(_notifications),
+      categories: _categories,
+      defaultCategoryId: _defaultCategoryId,
+    ));
+  }
+
+  Future<void> _onSaveRule(
+    NotificationSaveRule event,
+    Emitter<NotificationImportState> emit,
+  ) async {
+    try {
+      await _ruleRepo.create(
+        keyword: event.keyword,
+        categoryId: event.categoryId,
+      );
+    } catch (_) {
+      // 静默失败，不影响导入
+    }
   }
 
   Future<void> _onImportConfirmed(
@@ -91,8 +203,12 @@ class NotificationImportBloc
     }
   }
 
-  void _onReset(NotificationReset event, Emitter<NotificationImportState> emit) {
+  void _onReset(
+    NotificationReset event,
+    Emitter<NotificationImportState> emit,
+  ) {
     _notifications.clear();
+    _categories = [];
     emit(NotificationImportInitial());
   }
 

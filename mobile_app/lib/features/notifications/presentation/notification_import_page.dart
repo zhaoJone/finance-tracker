@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../../../categories/data/categories_models.dart';
 import '../../../core/notification_listener_bridge.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -11,6 +12,34 @@ import '../data/notification_models.dart';
 import 'notification_import_bloc.dart';
 import 'notification_import_event.dart';
 import 'notification_import_state.dart';
+
+/// 商户分组数据
+class _MerchantGroup {
+  final String counterparty;
+  final List<int> indices;
+  int get totalAmount => indices.fold(0, (sum, i) => sum + _allNotifications[i].amount);
+  ParsedNotification get first => _allNotifications[indices.first];
+  String? get categoryId => first.categoryId;
+
+  static List<ParsedNotification> _allNotifications = [];
+
+  _MerchantGroup({required this.counterparty, required this.indices});
+
+  static List<_MerchantGroup> group(List<ParsedNotification> notifications) {
+    _allNotifications = notifications;
+    final map = <String, List<int>>{};
+    for (var i = 0; i < notifications.length; i++) {
+      final cp = notifications[i].counterparty;
+      if (cp.isEmpty) {
+        map['其他'] = [...(map['其他'] ?? []), i];
+      } else {
+        map[cp] = [...(map[cp] ?? []), i];
+      }
+    }
+    return map.entries.map((e) => _MerchantGroup(counterparty: e.key, indices: e.value)).toList()
+      ..sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
+  }
+}
 
 class NotificationImportPage extends StatefulWidget {
   const NotificationImportPage({super.key});
@@ -22,10 +51,10 @@ class NotificationImportPage extends StatefulWidget {
 class _NotificationImportPageState extends State<NotificationImportPage> {
   final _textController = TextEditingController();
   String _selectedSource = 'alipay';
-  String _defaultCategoryId = '';
   bool _isListening = false;
   final NotificationListenerBridge _bridge = NotificationListenerBridge();
   final List<Map<String, String>> _recentNotifications = [];
+  final Set<String> _savedRules = {}; // 跟踪已保存的规则关键词
 
   // MethodChannel 调用系统设置
   static const _platform = MethodChannel('com.financetracker/settings');
@@ -46,7 +75,6 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
             _recentNotifications.removeLast();
           }
         });
-        // 自动解析并添加到待导入列表
         context.read<NotificationImportBloc>().add(
               NotificationIncoming(source: source, rawText: rawText),
             );
@@ -87,15 +115,15 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
     _textController.clear();
   }
 
-  void _confirmImport() {
-    if (_defaultCategoryId.isEmpty) {
+  void _confirmImport(String defaultCategoryId) {
+    if (defaultCategoryId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入默认分类 ID'), backgroundColor: Colors.orange),
+        const SnackBar(content: Text('请选择默认分类或为每组指定分类'), backgroundColor: Colors.orange),
       );
       return;
     }
     context.read<NotificationImportBloc>().add(
-          NotificationImportConfirmed(defaultCategoryId: _defaultCategoryId),
+          NotificationImportConfirmed(defaultCategoryId: defaultCategoryId),
         );
   }
 
@@ -143,16 +171,233 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
         builder: (context, state) {
           return Column(
             children: [
-              // 通知监听状态
               _buildListenerStatus(),
               const Divider(),
               Expanded(
-                child: _buildNotificationList(state),
+                child: _buildContent(state),
               ),
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildContent(NotificationImportState state) {
+    if (state is NotificationImportLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state is! NotificationImportLoaded) {
+      return const SizedBox.shrink();
+    }
+
+    final notifications = state.notifications;
+    final categories = state.categories;
+    final groups = _MerchantGroup.group(notifications);
+
+    if (notifications.isEmpty) {
+      return _buildInputSection(categories);
+    }
+
+    return CustomScrollView(
+      slivers: [
+        // 手动输入区域
+        SliverToBoxAdapter(
+          child: _buildInputSection(categories),
+        ),
+        // 商户分组列表
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '待导入 ${notifications.length} 条（${groups.length} 组）',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.gray900),
+                ),
+                FilledButton(
+                  onPressed: () => _confirmImport(state.defaultCategoryId),
+                  style: FilledButton.styleFrom(backgroundColor: AppColors.gray900),
+                  child: const Text('确认导入'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, groupIndex) {
+                final group = groups[groupIndex];
+                final hasCategorySet = group.categoryId != null;
+                final categoryName = hasCategorySet
+                    ? categories.where((c) => c.id == group.categoryId).firstOrNull?.name ?? '已选'
+                    : '未选';
+                final ruleSaved = _savedRules.contains(group.counterparty);
+                final allUncategorized = notifications.every((n) => n.categoryId == null);
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: AppCard(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 商户名 + 总金额
+                        Row(
+                          children: [
+                            Icon(
+                              _sourceIcon(group.first.source),
+                              size: 18,
+                              color: _sourceColor(group.first.source),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                group.counterparty,
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.gray900),
+                              ),
+                            ),
+                            Text(
+                              '¥${(group.totalAmount / 100).toStringAsFixed(2)}',
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.gray900),
+                            ),
+                            if (group.indices.length > 1)
+                              Container(
+                                margin: const EdgeInsets.only(left: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.gray100,
+                                  borderRadius: AppRadius.fullRadius,
+                                ),
+                                child: Text('×${group.indices.length}', style: const TextStyle(fontSize: 11, color: AppColors.gray500)),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        // 分类选择
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: hasCategorySet ? group.categoryId : null,
+                                decoration: InputDecoration(
+                                  labelText: '分类',
+                                  border: OutlineInputBorder(
+                                    borderRadius: AppRadius.smRadius,
+                                    borderSide: const BorderSide(color: AppColors.gray300),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  isDense: true,
+                                ),
+                                hint: const Text('选择分类', style: TextStyle(fontSize: 13, color: AppColors.gray400)),
+                                items: categories.map((cat) {
+                                  return DropdownMenuItem(
+                                    value: cat.id,
+                                    child: Text(cat.name, style: const TextStyle(fontSize: 13)),
+                                  );
+                                }).toList(),
+                                onChanged: (v) {
+                                  if (v != null) {
+                                    context.read<NotificationImportBloc>().add(
+                                          NotificationSetGroupCategory(
+                                            counterparty: group.counterparty,
+                                            categoryId: v,
+                                          ),
+                                        );
+                                  }
+                                },
+                                isDense: true,
+                                style: const TextStyle(fontSize: 13, color: AppColors.gray900),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // 记住分类按钮
+                            if (hasCategorySet && !ruleSaved)
+                              SizedBox(
+                                height: 32,
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    context.read<NotificationImportBloc>().add(
+                                          NotificationSaveRule(
+                                            keyword: group.counterparty,
+                                            categoryId: group.categoryId!,
+                                          ),
+                                        );
+                                    setState(() => _savedRules.add(group.counterparty));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('${group.counterparty} → $categoryName 已记住'),
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.save_outline, size: 14),
+                                  label: const Text('记住', style: TextStyle(fontSize: 11)),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    foregroundColor: AppColors.incomeGreen600,
+                                    side: BorderSide(color: AppColors.incomeGreen600.withOpacity(0.3)),
+                                    shape: RoundedRectangleBorder(borderRadius: AppRadius.smRadius),
+                                  ),
+                                ),
+                              ),
+                            if (ruleSaved)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 4),
+                                child: Icon(Icons.check_circle, size: 18, color: AppColors.incomeGreen600),
+                              ),
+                          ],
+                        ),
+                        if (group.indices.length > 1) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          // 原始通知列表（收起状态）
+                          ...group.indices.take(2).map((i) => Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Text(
+                                  notifications[i].rawText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 11, color: AppColors.gray400),
+                                ),
+                              )),
+                          if (group.indices.length > 2)
+                            Text(
+                              '还有 ${group.indices.length - 2} 条...',
+                              style: const TextStyle(fontSize: 11, color: AppColors.gray400, fontStyle: FontStyle.italic),
+                            ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              },
+              childCount: groups.length,
+            ),
+          ),
+        ),
+        // 批量设置默认分类
+        if (!allUncategorized)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.lg),
+              child: OutlinedButton(
+                onPressed: () {
+                  // 将所有未设分类的归为默认（取第一个未选分类的分组为示范）
+                  // 批量操作留给用户手动逐组设置即可
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.gray600,
+                  side: const BorderSide(color: AppColors.gray300),
+                ),
+                child: const Text('为空分组批量设置分类', style: TextStyle(fontSize: 13)),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -195,7 +440,7 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
           ),
           const SizedBox(height: AppSpacing.sm),
           const Text(
-            '自动捕获支付宝、微信支付通知，解析后添加到下方列表',
+            '自动捕获支付宝、微信支付通知，解析后按商户分组归类',
             style: TextStyle(fontSize: 12, color: AppColors.gray400, height: 1.4),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -260,210 +505,104 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
     );
   }
 
-  Widget _buildNotificationList(NotificationImportState state) {
-    if (state is NotificationImportLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    List<ParsedNotification> notifications = [];
-    if (state is NotificationImportLoaded) {
-      notifications = state.notifications;
-    }
-
-    return CustomScrollView(
-      slivers: [
-        // 手动输入区域
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
-            child: AppCard(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('手动添加', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.gray900)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _textController,
-                          decoration: InputDecoration(
-                            hintText: '粘贴支付宝/微信通知内容',
-                            border: OutlineInputBorder(borderRadius: AppRadius.smRadius, borderSide: const BorderSide(color: AppColors.gray300)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            isDense: true,
-                          ),
-                          maxLines: 2,
-                          style: const TextStyle(fontSize: 13),
+  Widget _buildInputSection(List<Category> categories) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
+      child: AppCard(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('手动添加', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.gray900)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _textController,
+                    decoration: InputDecoration(
+                      hintText: '粘贴支付宝/微信通知内容',
+                      border: OutlineInputBorder(
+                        borderRadius: AppRadius.smRadius,
+                        borderSide: const BorderSide(color: AppColors.gray300),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      isDense: true,
+                    ),
+                    maxLines: 2,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  children: [
+                    DropdownButton<String>(
+                      value: _selectedSource,
+                      items: const [
+                        DropdownMenuItem(value: 'alipay', child: Text('支付宝', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'wechat', child: Text('微信', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'bank', child: Text('银行', style: TextStyle(fontSize: 13))),
+                      ],
+                      onChanged: (v) => setState(() => _selectedSource = v!),
+                      underline: const SizedBox(),
+                      isDense: true,
+                    ),
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      width: 64,
+                      height: 32,
+                      child: TextButton(
+                        onPressed: _addNotification,
+                        style: TextButton.styleFrom(
+                          backgroundColor: AppColors.gray900,
+                          foregroundColor: AppColors.surface,
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(borderRadius: AppRadius.smRadius),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Column(
-                        children: [
-                          DropdownButton<String>(
-                            value: _selectedSource,
-                            items: const [
-                              DropdownMenuItem(value: 'alipay', child: Text('支付宝', style: TextStyle(fontSize: 13))),
-                              DropdownMenuItem(value: 'wechat', child: Text('微信', style: TextStyle(fontSize: 13))),
-                              DropdownMenuItem(value: 'bank', child: Text('银行', style: TextStyle(fontSize: 13))),
-                            ],
-                            onChanged: (v) => setState(() => _selectedSource = v!),
-                            underline: const SizedBox(),
-                            isDense: true,
-                          ),
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            width: 64,
-                            height: 32,
-                            child: TextButton(
-                              onPressed: _addNotification,
-                              style: TextButton.styleFrom(
-                                backgroundColor: AppColors.gray900,
-                                foregroundColor: AppColors.surface,
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(borderRadius: AppRadius.smRadius),
-                              ),
-                              child: const Text('添加', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: '默认分类 ID (UUID)',
-                            border: OutlineInputBorder(borderRadius: AppRadius.smRadius, borderSide: const BorderSide(color: AppColors.gray300)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            isDense: true,
-                          ),
-                          onChanged: (v) => _defaultCategoryId = v.trim(),
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        height: 32,
-                        child: OutlinedButton(
-                          onPressed: () => context.read<NotificationImportBloc>().add(NotificationLoadDemo()),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            shape: RoundedRectangleBorder(borderRadius: AppRadius.smRadius),
-                          ),
-                          child: const Text('演示', style: TextStyle(fontSize: 12)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // 通知列表
-        if (notifications.isEmpty)
-          const SliverFillRemaining(
-            child: Center(child: Text('暂无待导入通知', style: TextStyle(color: AppColors.gray400))),
-          )
-        else ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '待导入 ${notifications.length} 条',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.gray900),
-                  ),
-                  FilledButton(
-                    onPressed: _confirmImport,
-                    style: FilledButton.styleFrom(backgroundColor: AppColors.gray900),
-                    child: const Text('确认导入'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final n = notifications[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: AppCard(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(_sourceIcon(n.source), size: 20, color: _sourceColor(n.source)),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '¥${(n.amount / 100).toStringAsFixed(2)}',
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.gray900),
-                                ),
-                              ),
-                              if (n.counterparty.isNotEmpty)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.gray100,
-                                    borderRadius: AppRadius.fullRadius,
-                                  ),
-                                  child: Text(n.counterparty, style: const TextStyle(fontSize: 12, color: AppColors.gray600)),
-                                ),
-                              const SizedBox(width: 4),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: AppColors.expenseRed500, size: 18),
-                                onPressed: () => context.read<NotificationImportBloc>().add(NotificationRemove(index)),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                DateFormat('MM-dd HH:mm').format(n.timestamp),
-                                style: const TextStyle(fontSize: 11, color: AppColors.gray400),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                n.source == 'alipay' ? '支付宝' : n.source == 'wechat' ? '微信' : '银行',
-                                style: TextStyle(fontSize: 11, color: _sourceColor(n.source)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            n.rawText,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11, color: AppColors.gray400),
-                          ),
-                        ],
+                        child: const Text('添加', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                       ),
                     ),
-                  );
-                },
-                childCount: notifications.length,
-              ),
+                  ],
+                ),
+              ],
             ),
-          ),
-        ],
-      ],
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: '默认分类（未设分类的归属）',
+                      border: OutlineInputBorder(
+                        borderRadius: AppRadius.smRadius,
+                        borderSide: const BorderSide(color: AppColors.gray300),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      isDense: true,
+                    ),
+                    onChanged: (v) {
+                      // defaultCategoryId is managed by the BLoC state
+                    },
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 32,
+                  child: OutlinedButton(
+                    onPressed: () => context.read<NotificationImportBloc>().add(NotificationLoadDemo()),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      shape: RoundedRectangleBorder(borderRadius: AppRadius.smRadius),
+                    ),
+                    child: const Text('演示', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -6,6 +6,7 @@ ParsedNotification - 标准化通知解析结果。
 """
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -20,5 +21,6 @@ class ParsedNotification(BaseModel):
     counterparty: str = Field(default="", description="交易对方")
     timestamp: datetime
     trade_no: str = Field(default="", description="平台交易号，用于去重")
+    category_id: UUID | None = Field(default=None, description="通知对应的分类 ID（可选，传空则走规则匹配或默认）")
 
     model_config = {"str_strip_whitespace": True}

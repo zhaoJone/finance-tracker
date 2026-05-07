@@ -9,7 +9,12 @@
 | repository/ | 100% | ✅ | ✅ 已建立（SQLAlchemy ORM） | 2026-04-17 |
 | parsers/（通知解析） | 95% | ✅ | ✅ 已建立（支付宝/微信/银行策略模式） | 2026-04-28 |
 | service/ | 95% | ✅ | ✅ 已建立 | 2026-04-16 |
+| service/category_matcher.py | 100% | ✅ | ✅ 新增：商户关键词→分类自动匹配 | 2026-05-01 |
 | api/ | 95% | ✅ | ✅ 已建立（含完整 CRUD + 409 错误处理，auth 路径已修复） | 2026-04-27 |
+| api/imports.py | 65% | ✅ | 🆕 新增：导入端点重构，支持按条指定分类 | 2026-05-01 |
+| api/rules.py | 70% | ✅ | 🆕 新增：匹配规则 CRUD | 2026-05-01 |
+| repository/category_match_rule.py | 100% | ✅ | 🆕 新增：匹配规则持久化 | 2026-05-01 |
+| schemas/category_match_rule.py | 100% | ✅ | 🆕 新增：匹配规则 Pydantic 模型 | 2026-05-01 |
 | config/ | - | ✅ | ✅ 已建立（database, migrations） | 2026-04-17 |
 | Docker | - | ✅ | ✅ 已建立（PostgreSQL） | 2026-04-17 |
 | Alembic Migration | - | ✅ | ✅ 已建立 | 2026-04-17 |
@@ -29,6 +34,7 @@
 | core/（ApiClient、injection） | - | ✅ | ✅ 已建立 | 2026-04-16 |
 || auth/（登录/注册） | - | ✅ | ✅ 已建立，UI 升级—使用 AppInput/AppButton 设计系统，支持注册（邮箱+密码+确认密码校验） | 2026-04-30 |
 | notifications/（通知导入） | ✅ 9/9 | ✅ | ✅ 已建立（支持支付宝/微信/银行解析）→ 新增: Android NotificationListenerService 原生监听器、EventChannel 桥接、自动捕获支付通知 | 2026-04-30 |
+| | | | 新增: 商户聚合归类方案（按 counterparty 分组+分类下拉）、匹配规则自动分配、记住分类 | 2026-05-01 |
 | theme/（设计系统） | - | ✅ | ✅ 黑白灰设计系统 | 2026-04-29 |
 | widgets/（通用组件） | - | ✅ | ✅ AppCard/Button/Input/Badge/EmptyState/BottomNav（中文标签，Android 系统导航栏自适应 padding） | 2026-04-30 |
 | home/（首页仪表盘） | - | ✅ | ✅ 左色条卡片 + 下拉刷新 + 月份导航 | 2026-04-30 |
