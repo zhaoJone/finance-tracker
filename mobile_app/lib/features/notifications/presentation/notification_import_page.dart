@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
-import '../../../categories/data/categories_models.dart';
+import '../../categories/data/categories_models.dart';
 import '../../../core/notification_listener_bridge.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -234,10 +233,9 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
                 final group = groups[groupIndex];
                 final hasCategorySet = group.categoryId != null;
                 final categoryName = hasCategorySet
-                    ? categories.where((c) => c.id == group.categoryId).firstOrNull?.name ?? '已选'
+                    ? categories.where((c) => c.id == group.categoryId!).firstOrNull?.name ?? '已选'
                     : '未选';
                 final ruleSaved = _savedRules.contains(group.counterparty);
-                final allUncategorized = notifications.every((n) => n.categoryId == null);
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -335,7 +333,7 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
                                       ),
                                     );
                                   },
-                                  icon: const Icon(Icons.save_outline, size: 14),
+                                  icon: const Icon(Icons.save, size: 14),
                                   label: const Text('记住', style: TextStyle(fontSize: 11)),
                                   style: OutlinedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -379,24 +377,6 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
             ),
           ),
         ),
-        // 批量设置默认分类
-        if (!allUncategorized)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.lg),
-              child: OutlinedButton(
-                onPressed: () {
-                  // 将所有未设分类的归为默认（取第一个未选分类的分组为示范）
-                  // 批量操作留给用户手动逐组设置即可
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.gray600,
-                  side: const BorderSide(color: AppColors.gray300),
-                ),
-                child: const Text('为空分组批量设置分类', style: TextStyle(fontSize: 13)),
-              ),
-            ),
-          ),
       ],
     );
   }

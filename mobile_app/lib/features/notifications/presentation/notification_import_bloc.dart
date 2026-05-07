@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../categories/data/categories_models.dart';
-import '../../../categories/data/categories_repository.dart';
+import '../../categories/data/categories_models.dart';
+import '../../categories/data/categories_repository.dart';
 import '../data/notification_models.dart';
 import '../data/notification_import_repository.dart';
 import 'notification_import_event.dart';

@@ -9,7 +9,7 @@ class ParsedNotification {
   final String tradeNo;
   String? categoryId; // 可选的分类 ID
 
-  const ParsedNotification({
+  ParsedNotification({
     required this.source,
     required this.rawText,
     required this.amount,

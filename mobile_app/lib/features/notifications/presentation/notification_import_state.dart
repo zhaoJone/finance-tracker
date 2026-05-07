@@ -1,4 +1,4 @@
-import '../../../categories/data/categories_models.dart';
+import '../../categories/data/categories_models.dart';
 import '../data/notification_models.dart';
 import 'package:equatable/equatable.dart';
 

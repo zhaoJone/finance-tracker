@@ -65,7 +65,14 @@ Future<void> setupDependencies() async {
   getIt.registerSingleton<NotificationImportRepository>(
     NotificationImportRepository(getIt<ApiClient>()),
   );
+  getIt.registerSingleton<CategoryMatchRuleRepository>(
+    CategoryMatchRuleRepository(getIt<ApiClient>()),
+  );
   getIt.registerFactory<NotificationImportBloc>(
-    () => NotificationImportBloc(getIt<NotificationImportRepository>()),
+    () => NotificationImportBloc(
+      getIt<NotificationImportRepository>(),
+      getIt<CategoriesRepository>(),
+      getIt<CategoryMatchRuleRepository>(),
+    ),
   );
 }
