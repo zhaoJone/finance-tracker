@@ -13,7 +13,7 @@ class NotificationImportBloc
   final CategoryMatchRuleRepository _ruleRepo;
   List<ParsedNotification> _notifications = [];
   List<Category> _categories = [];
-  String _defaultCategoryId = '';
+  final String _defaultCategoryId = '';
 
   NotificationImportBloc(
     this._repository,
