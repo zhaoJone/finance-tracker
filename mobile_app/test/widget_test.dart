@@ -39,7 +39,7 @@ void main() {
   });
 
   group('parseBankNotification', () {
-    test('解析正常消费通知', () {
+    test('解析正常消费通知（通用格式）', () {
       final result = parseBankNotification(
           '您尾号1234的银行卡片于2024-01-01 12:00:00消费RMB 56.78元');
       expect(result, isNotNull);
@@ -54,6 +54,51 @@ void main() {
       expect(result, isNotNull);
       expect(result!.amount, equals(20000));
       expect(result.source, equals('bank'));
+    });
+
+    test('招行信用卡消费', () {
+      final result = parseBankNotification(
+          '【招商银行】您尾号8888的信用卡于05月01日12:30消费人民币128.00元');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(12800));
+      expect(result.source, equals('bank'));
+      expect(result.type, equals('expense'));
+      expect(result.counterparty, isEmpty);
+    });
+
+    test('招行一卡通支出', () {
+      final result = parseBankNotification(
+          '【招商银行】您尾号6666的一卡通于05月01日12:30支出人民币500.00元');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(50000));
+      expect(result.source, equals('bank'));
+      expect(result.type, equals('expense'));
+    });
+
+    test('招行收款（收入）', () {
+      final result = parseBankNotification(
+          '【招商银行】您尾号6666的一卡通于05月01日12:30收到转账人民币1000.00元');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(100000));
+      expect(result.source, equals('bank'));
+      expect(result.type, equals('income'));
+    });
+
+    test('招行信用卡还款', () {
+      final result = parseBankNotification(
+          '【招商银行】您尾号8888的信用卡于05月01日12:30还款人民币2000.00元');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(200000));
+      expect(result.source, equals('bank'));
+      expect(result.type, equals('expense'));
+    });
+
+    test('招行带商户名消费', () {
+      final result = parseBankNotification(
+          '【招商银行】您尾号8888的信用卡于05月01日14:20消费人民币36.50元-瑞幸咖啡');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(3650));
+      expect(result.counterparty, equals('瑞幸咖啡'));
     });
 
     test('未知格式返回 null', () {
@@ -79,6 +124,14 @@ void main() {
       final r1 = parseAlipayNotification(text1);
       final r2 = parseAlipayNotification(text2);
       expect(r1!.tradeNo, isNot(equals(r2!.tradeNo)));
+    });
+
+    test('相同招行通知文本产生相同 hash', () {
+      const text =
+          '【招商银行】您尾号8888的信用卡于05月01日12:30消费人民币128.00元';
+      final r1 = parseBankNotification(text);
+      final r2 = parseBankNotification(text);
+      expect(r1!.tradeNo, equals(r2!.tradeNo));
     });
   });
 }

@@ -119,29 +119,88 @@ ParsedNotification? parseWechatNotification(String text) {
   );
 }
 
-/// 解析银行通知文本
-/// 「您尾号1234的银行卡片于2024-01-01 12:00:00消费RMB 56.78元」
+/// 解析银行通知文本（支持招商银行等主流银行格式）
+///
+/// 通用格式：
+///   「您尾号1234的银行卡片于2024-01-01 12:00:00消费RMB 56.78元」
+///   「您尾号1234的银行卡片ATM支取 RMB 200.00元」
+///
+/// 招商银行信用卡消费：
+///   「【招商银行】您尾号8888的信用卡于05月01日12:30消费人民币128.00元」
+/// 招商银行一卡通支出：
+///   「【招商银行】您尾号6666的一卡通于05月01日12:30支出人民币500.00元」
+/// 招商银行收款（入账）：
+///   「【招商银行】您尾号6666的一卡通于05月01日12:30收到转账人民币1000.00元」
+/// 招商银行还款：
+///   「【招商银行】您尾号8888的信用卡于05月01日12:30还款人民币2000.00元」
 ParsedNotification? parseBankNotification(String text) {
-  final consumptionMatch = RegExp(r'行卡.*?消费(?:RMB)?\s*([\d.]+)').firstMatch(text);
-  final withdrawalMatch = RegExp(r'行卡.*?支取\s*(?:RMB\s*)?([\d.]+)').firstMatch(text);
+  // ---------- 金额提取 ----------
+  // 招行格式：消费/支出/收到转账/还款 人民币X.XX元
+  final cmbAmountMatch =
+      RegExp(r'(?:消费|支出|收到转账|还款)人民币([\d.]+)元').firstMatch(text);
+  // 通用格式：消费/支取 RMB X.XX元
+  final genericAmountMatch = RegExp(
+          r'(?:消费|支取)\s*(?:RMB\s*)?([\d.]+)')
+      .firstMatch(text);
 
   String? amountStr;
-  if (consumptionMatch != null) {
-    amountStr = consumptionMatch.group(1);
-  } else if (withdrawalMatch != null) {
-    amountStr = withdrawalMatch.group(1);
+  bool isIncome = false;
+  if (cmbAmountMatch != null) {
+    amountStr = cmbAmountMatch.group(1);
+    // 如果是"收到转账"，是收入
+    isIncome = text.contains('收到转账');
+  } else if (genericAmountMatch != null) {
+    amountStr = genericAmountMatch.group(1);
   }
 
   if (amountStr == null) return null;
   final amountFen = (double.parse(amountStr) * 100).round();
 
+  // ---------- 时间提取 ----------
+  DateTime timestamp = DateTime.now();
+  // 招行格式：于05月01日12:30
+  final cmbTimeMatch =
+      RegExp(r'于(\d{1,2})月(\d{1,2})日(\d{1,2}):(\d{2})').firstMatch(text);
+  if (cmbTimeMatch != null) {
+    final month = int.parse(cmbTimeMatch.group(1)!);
+    final day = int.parse(cmbTimeMatch.group(2)!);
+    final hour = int.parse(cmbTimeMatch.group(3)!);
+    final minute = int.parse(cmbTimeMatch.group(4)!);
+    // 跨年处理：如果解析出的月份 > 当前月份，说明是去年
+    int year = DateTime.now().year;
+    if (month > DateTime.now().month) {
+      year -= 1;
+    }
+    timestamp = DateTime(year, month, day, hour, minute);
+  } else {
+    // 通用格式：于2024-01-01 12:00:00
+    final genericTimeMatch =
+        RegExp(r'于(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2}):(\d{2})')
+            .firstMatch(text);
+    if (genericTimeMatch != null) {
+      timestamp = DateTime(
+        int.parse(genericTimeMatch.group(1)!),
+        int.parse(genericTimeMatch.group(2)!),
+        int.parse(genericTimeMatch.group(3)!),
+        int.parse(genericTimeMatch.group(4)!),
+        int.parse(genericTimeMatch.group(5)!),
+        int.parse(genericTimeMatch.group(6)!),
+      );
+    }
+  }
+
+  // ---------- 商户/交易对方提取 ----------
+  // 部分银行通知含商户名，如 "-XX超市"
+  final merchantMatch = RegExp(r'[-—]([^-—\s]{2,10})$').firstMatch(text);
+  final counterparty = merchantMatch?.group(1) ?? '';
+
   return ParsedNotification(
     source: 'bank',
     rawText: text,
     amount: amountFen,
-    type: 'expense',
-    counterparty: '',
-    timestamp: DateTime.now(),
+    type: isIncome ? 'income' : 'expense',
+    counterparty: counterparty,
+    timestamp: timestamp,
     tradeNo: _sha256(text),
   );
 }
@@ -157,12 +216,17 @@ class NotificationImportRepository {
   /// 批量导入通知 → 创建交易
   Future<ImportResult> importNotifications({
     required List<ParsedNotification> notifications,
-    required String defaultCategoryId,
+    String? defaultCategoryId,
   }) async {
+    final body = <String, dynamic>{
+      'notifications': notifications.map((n) => n.toJson()).toList(),
+    };
+    if (defaultCategoryId != null && defaultCategoryId.isNotEmpty) {
+      body['default_category_id'] = defaultCategoryId;
+    }
     final response = await _client.dio.post(
       ApiConfig.importEndpoint,
-      queryParameters: {'default_category_id': defaultCategoryId},
-      data: notifications.map((n) => n.toJson()).toList(),
+      data: body,
     );
 
     final data = response.data as Map<String, dynamic>;
