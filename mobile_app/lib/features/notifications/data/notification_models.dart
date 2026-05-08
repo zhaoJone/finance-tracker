@@ -9,6 +9,9 @@ class ParsedNotification {
   final String tradeNo;
   String? categoryId; // 可选的分类 ID
 
+  /// 解析失败标记：告警/微信/招商银行的原始通知无法解析时保留原文
+  final bool isUnparsed;
+
   ParsedNotification({
     required this.source,
     required this.rawText,
@@ -18,6 +21,7 @@ class ParsedNotification {
     required this.timestamp,
     required this.tradeNo,
     this.categoryId,
+    this.isUnparsed = false,
   });
 
   Map<String, dynamic> toJson() => {

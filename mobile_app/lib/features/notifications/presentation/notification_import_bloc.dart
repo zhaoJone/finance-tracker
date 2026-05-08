@@ -1,3 +1,5 @@
+import 'package:crypto/crypto.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../categories/data/categories_models.dart';
 import '../../categories/data/categories_repository.dart';
@@ -75,11 +77,23 @@ class NotificationImportBloc
       rawText: event.rawText,
       source: event.source,
     );
-    if (parsed == null) return;
-    _notifications.add(parsed);
-
-    // Try match rules
-    _applyMatchRules();
+    if (parsed == null) {
+      // 解析失败 → 保留原文供用户查看，标记 isUnparsed
+      _notifications.add(ParsedNotification(
+        source: event.source,
+        rawText: event.rawText,
+        amount: 0,
+        type: 'expense',
+        counterparty: '',
+        timestamp: DateTime.now(),
+        tradeNo: _sha256(event.rawText),
+        isUnparsed: true,
+      ));
+    } else {
+      _notifications.add(parsed);
+      // Try match rules
+      _applyMatchRules();
+    }
 
     emit(NotificationImportLoaded(
       notifications: List.from(_notifications),
@@ -153,8 +167,15 @@ class NotificationImportBloc
     if (_notifications.isEmpty) return;
     emit(NotificationImportLoading());
     try {
+      // 过滤掉未解析的通知，只导入成功解析的
+      final parsedNotifications =
+          _notifications.where((n) => !n.isUnparsed).toList();
+      if (parsedNotifications.isEmpty) {
+        emit(const NotificationImportError('没有可导入的通知（所有通知均未能解析）'));
+        return;
+      }
       final result = await _repository.importNotifications(
-        notifications: _notifications,
+        notifications: parsedNotifications,
         defaultCategoryId: event.defaultCategoryId,
       );
       _notifications.clear();
@@ -185,4 +206,8 @@ class NotificationImportBloc
     }
     return '导入失败: ${e.toString()}';
   }
+
+  /// 用原始文本生成唯一指纹，用于前端去重
+  static String _sha256(String input) =>
+      sha256.convert(input.codeUnits).toString();
 }
