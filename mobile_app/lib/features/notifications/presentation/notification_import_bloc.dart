@@ -11,7 +11,7 @@ class NotificationImportBloc
   final NotificationImportRepository _repository;
   final CategoriesRepository _categoriesRepo;
   final CategoryMatchRuleRepository _ruleRepo;
-  List<ParsedNotification> _notifications = [];
+  final List<ParsedNotification> _notifications = [];
   List<Category> _categories = [];
   final String _defaultCategoryId = '';
 
