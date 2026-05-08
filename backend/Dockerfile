@@ -23,6 +23,8 @@ COPY --from=builder /root/.local /home/appuser/.local
 
 # Copy application code
 COPY --chown=appuser:appgroup src/ ./src/
+COPY --chown=appuser:appgroup alembic.ini .
+COPY --chown=appuser:appgroup migrations/ ./migrations/
 
 # Switch to non-root user
 USER appuser

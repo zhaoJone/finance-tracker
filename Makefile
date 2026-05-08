@@ -5,6 +5,8 @@ docker-build:
 
 docker-up:
 	docker compose up -d
+	@echo "Running database migrations..."
+	@docker compose exec -T backend alembic upgrade head && echo " - Migrations OK" || echo " - Migrations FAILED"
 	@echo "Services started. Waiting for health checks..."
 	@sleep 10
 	@curl -f http://localhost/api/health && echo " - Backend health OK" || echo " - Backend health FAILED"
