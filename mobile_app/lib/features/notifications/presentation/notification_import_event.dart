@@ -7,18 +7,9 @@ abstract class NotificationImportEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// 加载演示通知 + 分类数据
-class NotificationLoadDemo extends NotificationImportEvent {}
-
-/// 添加一条手动输入的通知
-class NotificationAdd extends NotificationImportEvent {
-  final String rawText;
-  final String source; // "alipay" | "wechat"
-
-  const NotificationAdd({required this.rawText, required this.source});
-
-  @override
-  List<Object?> get props => [rawText, source];
+/// 初始化页面数据（加载分类列表）
+class NotificationInit extends NotificationImportEvent {
+  const NotificationInit();
 }
 
 /// 接收来自 Android 原生通知监听的新通知

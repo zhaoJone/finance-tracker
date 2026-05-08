@@ -20,8 +20,7 @@ class NotificationImportBloc
     this._categoriesRepo,
     this._ruleRepo,
   ) : super(NotificationImportInitial()) {
-    on<NotificationLoadDemo>(_onLoadDemo);
-    on<NotificationAdd>(_onAdd);
+    on<NotificationInit>(_onInit);
     on<NotificationIncoming>(_onIncoming);
     on<NotificationRemove>(_onRemove);
     on<NotificationSetCategory>(_onSetCategory);
@@ -31,40 +30,16 @@ class NotificationImportBloc
     on<NotificationReset>(_onReset);
   }
 
-  Future<void> _onLoadDemo(
-    NotificationLoadDemo event,
+  Future<void> _onInit(
+    NotificationInit event,
     Emitter<NotificationImportState> emit,
   ) async {
-    // Load categories first
+    // Load categories
     try {
       _categories = await _categoriesRepo.listCategories();
     } catch (_) {
       _categories = [];
     }
-
-    _notifications = [
-      ParsedNotification(
-        source: 'alipay',
-        rawText: '【支付宝】您有一笔支出，金额¥128.50，收款商家：麦当劳，已完成。28/04 14:32',
-        amount: 12850,
-        type: 'expense',
-        counterparty: '麦当劳',
-        timestamp: DateTime(2025, 4, 28, 14, 32),
-        tradeNo: 'demo_alipay_001',
-      ),
-      ParsedNotification(
-        source: 'wechat',
-        rawText: '微信支付，¥58.00，哆来茶，28/04/26 14:32:24支付完成',
-        amount: 5800,
-        type: 'expense',
-        counterparty: '哆来茶',
-        timestamp: DateTime(2025, 4, 26, 14, 32, 24),
-        tradeNo: 'demo_wechat_001',
-      ),
-    ];
-
-    // Try to apply match rules
-    await _applyMatchRules();
 
     emit(NotificationImportLoaded(
       notifications: List.from(_notifications),
@@ -90,20 +65,6 @@ class NotificationImportBloc
     } catch (_) {
       // 规则加载失败不影响核心功能
     }
-  }
-
-  void _onAdd(NotificationAdd event, Emitter<NotificationImportState> emit) {
-    final parsed = _repository.parseNotification(
-      rawText: event.rawText,
-      source: event.source,
-    );
-    if (parsed == null) return;
-    _notifications.add(parsed);
-    emit(NotificationImportLoaded(
-      notifications: List.from(_notifications),
-      categories: _categories,
-      defaultCategoryId: _defaultCategoryId,
-    ));
   }
 
   void _onIncoming(
