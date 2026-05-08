@@ -25,6 +25,7 @@ import java.util.concurrent.Executors
  * 目标应用包名：
  *   - 支付宝: com.eg.android.AlipayGphone
  *   - 微信: com.tencent.mm
+ *   - 招商银行: cmb.pb (个人银行), com.cmbchina.ccd.plutocredit (掌上生活)
  */
 class NotificationListener : NotificationListenerService() {
 
@@ -38,12 +39,14 @@ class NotificationListener : NotificationListenerService() {
         private val TARGET_PACKAGES = setOf(
             "com.eg.android.AlipayGphone",   // 支付宝
             "com.tencent.mm",                 // 微信
+            "cmb.pb",                          // 招商银行个人银行
+            "com.cmbchina.ccd.plutocredit",   // 招商银行掌上生活
         )
 
         // 通知文本中的关键词，用于过滤出支付类通知
         private val PAYMENT_KEYWORDS = setOf(
-            "支付宝", "微信支付", "支出", "收入", "消费",
-            "转账", "收到", "到账", "付款"
+            "支付宝", "微信支付", "招商银行", "支出", "收入", "消费",
+            "转账", "收到", "到账", "付款", "还款"
         )
 
         // EventChannel sink — 由 Flutter 端初始化时设置
