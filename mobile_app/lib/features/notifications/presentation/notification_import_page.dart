@@ -67,8 +67,8 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
     context.read<NotificationImportBloc>().add(NotificationLoadDemo());
   }
 
-  void _startListening() {
-    _bridge.startListening(
+  Future<void> _startListening() async {
+    await _bridge.startListening(
       onNotification: (source, rawText) {
         if (!mounted) return;
         setState(() {
@@ -82,7 +82,7 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
             );
       },
     );
-    setState(() => _isListening = true);
+    if (mounted) setState(() => _isListening = true);
   }
 
   void _stopListening() {
