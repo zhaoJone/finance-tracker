@@ -18,9 +18,8 @@ class BillsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
     return BlocProvider(
-      create: (_) => context.read<BillsBloc>()..add(BillsLoad(year: now.year, month: now.month)),
+      create: (_) => context.read<BillsBloc>()..add(const BillsLoad()),
       child: const _BillsBody(),
     );
   }
@@ -130,8 +129,7 @@ class _BillsContentState extends State<_BillsContent> {
                       selected: _selectedFilter == null,
                       onTap: () {
                         setState(() => _selectedFilter = null);
-                        final now = DateTime.now();
-                        context.read<BillsBloc>().add(BillsLoad(year: now.year, month: now.month));
+                        context.read<BillsBloc>().add(const BillsLoad());
                       },
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -140,8 +138,7 @@ class _BillsContentState extends State<_BillsContent> {
                       selected: _selectedFilter == 'income',
                       onTap: () {
                         setState(() => _selectedFilter = 'income');
-                        final now = DateTime.now();
-                        context.read<BillsBloc>().add(BillsLoad(type: 'income', year: now.year, month: now.month));
+                        context.read<BillsBloc>().add(const BillsLoad(type: 'income'));
                       },
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -150,8 +147,7 @@ class _BillsContentState extends State<_BillsContent> {
                       selected: _selectedFilter == 'expense',
                       onTap: () {
                         setState(() => _selectedFilter = 'expense');
-                        final now = DateTime.now();
-                        context.read<BillsBloc>().add(BillsLoad(type: 'expense', year: now.year, month: now.month));
+                        context.read<BillsBloc>().add(const BillsLoad(type: 'expense'));
                       },
                     ),
                   ],

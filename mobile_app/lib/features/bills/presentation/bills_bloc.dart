@@ -41,10 +41,9 @@ class BillsBloc extends Bloc<BillsEvent, BillsState> {
   }
 
   Future<void> _onUpdate(BillsUpdate event, Emitter<BillsState> emit) async {
-    final now = DateTime.now();
     try {
       await _repository.updateTransaction(event.id, event.update);
-      final txs = await _repository.listTransactions(year: now.year, month: now.month);
+      final txs = await _repository.listTransactions();
       emit(BillsLoaded(transactions: txs));
     } catch (e) {
       final lastState = state;
