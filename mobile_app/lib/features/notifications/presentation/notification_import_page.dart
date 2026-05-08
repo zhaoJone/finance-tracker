@@ -50,8 +50,9 @@ class NotificationImportPage extends StatefulWidget {
 class _NotificationImportPageState extends State<NotificationImportPage> {
   final _textController = TextEditingController();
   String _selectedSource = 'alipay';
+  String _defaultCategoryId = '';
   bool _isListening = false;
-  final NotificationListenerBridge _bridge = NotificationListenerBridge();
+  final NotificationListenerBridge _bridge = NotificationListenerBridge.instance;
   final List<Map<String, String>> _recentNotifications = [];
   final Set<String> _savedRules = {}; // 跟踪已保存的规则关键词
 
@@ -61,6 +62,8 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
   @override
   void initState() {
     super.initState();
+    // 恢复监听状态
+    _isListening = _bridge.isListening;
     context.read<NotificationImportBloc>().add(NotificationLoadDemo());
   }
 
@@ -83,7 +86,7 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
   }
 
   void _stopListening() {
-    _bridge.dispose();
+    _bridge.stopListening();
     setState(() => _isListening = false);
   }
 
@@ -101,7 +104,6 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
 
   @override
   void dispose() {
-    _bridge.dispose();
     _textController.dispose();
     super.dispose();
   }
@@ -115,9 +117,23 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
   }
 
   void _confirmImport(String defaultCategoryId) {
-    if (defaultCategoryId.isEmpty) {
+    // 检查是否有未指定分类的通知
+    final bloc = context.read<NotificationImportBloc>();
+    // 通过检查当前 BLoC 是否还有未设分类的通知（简化处理）
+    // 实际：如果 defaultCategoryId 为空且有通知未分类，提示用户
+    // 如果全部已分类，即使 defaultCategoryId 为空也能导入
+    final state = bloc.state;
+    if (state is NotificationImportLoaded) {
+      final hasUncategorized = state.notifications.any((n) => n.categoryId == null);
+      if (hasUncategorized && defaultCategoryId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('请选择默认分类或为每组指定分类'), backgroundColor: Colors.orange),
+        );
+        return;
+      }
+    } else if (defaultCategoryId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请选择默认分类或为每组指定分类'), backgroundColor: Colors.orange),
+        const SnackBar(content: Text('请选择默认分类'), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -217,7 +233,7 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.gray900),
                 ),
                 FilledButton(
-                  onPressed: () => _confirmImport(state.defaultCategoryId),
+                  onPressed: () => _confirmImport(_defaultCategoryId),
                   style: FilledButton.styleFrom(backgroundColor: AppColors.gray900),
                   child: const Text('确认导入'),
                 ),
@@ -560,9 +576,7 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       isDense: true,
                     ),
-                    onChanged: (v) {
-                      // defaultCategoryId is managed by the BLoC state
-                    },
+                    onChanged: (v) => setState(() => _defaultCategoryId = v.trim()),
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
