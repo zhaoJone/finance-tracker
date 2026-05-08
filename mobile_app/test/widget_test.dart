@@ -15,6 +15,32 @@ void main() {
       expect(result.tradeNo, isNotEmpty);
     });
 
+    test('解析交易提醒支出', () {
+      final result = parseAlipayNotification(
+          '交易提醒 你有一笔1.00元的支出，点此查看详情。');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(100));
+      expect(result.source, equals('alipay'));
+      expect(result.type, equals('expense'));
+      expect(result.counterparty, isEmpty);
+    });
+
+    test('解析交易提醒收入', () {
+      final result = parseAlipayNotification(
+          '交易提醒 你有一笔0.88元的收入，点此查看详情。');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(88));
+      expect(result.source, equals('alipay'));
+      expect(result.type, equals('income'));
+      expect(result.counterparty, isEmpty);
+    });
+
+    test('交易提醒无金额格式返回 null', () {
+      final result =
+          parseAlipayNotification('交易提醒 点此查看详情。');
+      expect(result, isNull);
+    });
+
     test('无金额格式返回 null', () {
       final result =
           parseAlipayNotification('【支付宝】这是一条无效通知');

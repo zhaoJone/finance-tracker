@@ -64,30 +64,50 @@ class CategoryMatchRuleRepository {
 
 /// 解析支付宝通知文本
 /// 「【支付宝】您有一笔支出，金额¥128.50，收款商家：麦当劳，已完成。28/04 14:32」
+/// 「交易提醒 你有一笔1.00元的支出，点此查看详情。」
 ParsedNotification? parseAlipayNotification(String text) {
+  // 格式1：标准支付通知 — ¥ 金额 + 可选商户 + 时间
   final amountMatch = RegExp(r'¥(\d+(?:\.\d{1,2})?)').firstMatch(text);
-  if (amountMatch == null) return null;
-  final amountFen = (double.parse(amountMatch.group(1)!) * 100).round();
+  if (amountMatch != null) {
+    final amountFen = (double.parse(amountMatch.group(1)!) * 100).round();
+    final merchantMatch = RegExp(r'收款商家[：:]([^\s，,]+)').firstMatch(text);
+    final counterparty = merchantMatch?.group(1) ?? '';
+    final timeMatch = RegExp(r'(\d{1,2})/(\d{1,2})\s+(\d{1,2}):(\d{1,2})').firstMatch(text);
+    final timestamp = timeMatch != null
+        ? DateTime(DateTime.now().year, int.parse(timeMatch.group(2)!),
+            int.parse(timeMatch.group(1)!), int.parse(timeMatch.group(3)!),
+            int.parse(timeMatch.group(4)!))
+        : DateTime.now();
 
-  final merchantMatch = RegExp(r'收款商家[：:]([^\s，,]+)').firstMatch(text);
-  final counterparty = merchantMatch?.group(1) ?? '';
+    return ParsedNotification(
+      source: 'alipay',
+      rawText: text,
+      amount: amountFen,
+      type: 'expense',
+      counterparty: counterparty,
+      timestamp: timestamp,
+      tradeNo: _sha256(text),
+    );
+  }
 
-  final timeMatch = RegExp(r'(\d{1,2})/(\d{1,2})\s+(\d{1,2}):(\d{1,2})').firstMatch(text);
-  final timestamp = timeMatch != null
-      ? DateTime(DateTime.now().year, int.parse(timeMatch.group(2)!),
-          int.parse(timeMatch.group(1)!), int.parse(timeMatch.group(3)!),
-          int.parse(timeMatch.group(4)!))
-      : DateTime.now();
+  // 格式2：交易提醒 — 「你有一笔X.XX元的支出/收入，点此查看详情。」
+  final remindMatch = RegExp(r'一笔([\d.]+)元的(支出|收入)').firstMatch(text);
+  if (remindMatch != null) {
+    final amountFen = (double.parse(remindMatch.group(1)!) * 100).round();
+    final type = remindMatch.group(2) == '收入' ? 'income' : 'expense';
 
-  return ParsedNotification(
-    source: 'alipay',
-    rawText: text,
-    amount: amountFen,
-    type: 'expense',
-    counterparty: counterparty,
-    timestamp: timestamp,
-    tradeNo: _sha256(text),
-  );
+    return ParsedNotification(
+      source: 'alipay',
+      rawText: text,
+      amount: amountFen,
+      type: type,
+      counterparty: '',
+      timestamp: DateTime.now(),
+      tradeNo: _sha256(text),
+    );
+  }
+
+  return null;
 }
 
 /// 解析微信通知文本
