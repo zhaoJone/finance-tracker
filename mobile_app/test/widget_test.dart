@@ -127,6 +127,34 @@ void main() {
       expect(result.counterparty, equals('瑞幸咖啡'));
     });
 
+    test('招行快捷支付扣款（财付通）', () {
+      final result = parseBankNotification(
+          '招商银行 您账户9746于05月08日19:03在【财付通-微信支付-拼多多平台商户】发生快捷支付扣款，人民币75.05');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(7505));
+      expect(result.source, equals('bank'));
+      expect(result.type, equals('expense'));
+      expect(result.counterparty, contains('财付通'));
+    });
+
+    test('招行快捷支付扣款（支付宝）', () {
+      final result = parseBankNotification(
+          '招商银行 您账户9746于05月08日19:04在【支付宝-**雨】发生快捷支付扣款，人民币0.01');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(1));
+      expect(result.source, equals('bank'));
+      expect(result.type, equals('expense'));
+      expect(result.counterparty, contains('支付宝'));
+    });
+
+    test('招行快捷支付扣款（微信转账）', () {
+      final result = parseBankNotification(
+          '招商银行 您账户9746于05月08日19:05在【财付通-微信支付-微信转账】发生快捷支付扣款，人民币0.01');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(1));
+      expect(result.counterparty, contains('微信转账'));
+    });
+
     test('未知格式返回 null', () {
       final result = parseBankNotification('这是一条无关短信');
       expect(result, isNull);

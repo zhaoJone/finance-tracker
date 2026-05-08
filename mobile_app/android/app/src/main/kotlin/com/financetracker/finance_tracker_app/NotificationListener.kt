@@ -13,7 +13,7 @@ import java.security.MessageDigest
 import java.util.concurrent.Executors
 
 /**
- * Android 通知监听服务 — 监听支付宝/微信/银行支付通知，
+ * Android 通知监听服务 — 通过文本关键词过滤支付通知，
  * 通过 EventChannel 转发到 Flutter 层解析。
  *
  * 双重保障：无论 EventChannel 是否连通，先写入本地缓存。
@@ -22,10 +22,8 @@ import java.util.concurrent.Executors
  * 在系统设置中用户需手动授予「通知使用权」：
  *   设置 → 应用 → 特殊权限 → 通知使用权 → 启用 finance-tracker
  *
- * 目标应用包名：
- *   - 支付宝: com.eg.android.AlipayGphone
- *   - 微信: com.tencent.mm
- *   - 招商银行: cmb.pb (个人银行), com.cmbchina.ccd.plutocredit (掌上生活)
+ * 不再依赖包名过滤：任何应用的支付通知（含招商银行、其他银行）
+ * 只要文本包含支付关键词即可捕获。
  */
 class NotificationListener : NotificationListenerService() {
 
@@ -34,14 +32,6 @@ class NotificationListener : NotificationListenerService() {
         private const val CHANNEL = "com.financetracker/notifications"
         private const val CACHE_PREFS = "notif_cache"
         private const val MAX_CACHED = 500
-
-        // 目标应用的包名
-        private val TARGET_PACKAGES = setOf(
-            "com.eg.android.AlipayGphone",   // 支付宝
-            "com.tencent.mm",                 // 微信
-            "cmb.pb",                          // 招商银行个人银行
-            "com.cmbchina.ccd.plutocredit",   // 招商银行掌上生活
-        )
 
         // 通知文本中的关键词，用于过滤出支付类通知
         private val PAYMENT_KEYWORDS = setOf(
@@ -190,9 +180,6 @@ class NotificationListener : NotificationListenerService() {
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val packageName = sbn.packageName
-
-        // 只处理目标应用的通知
-        if (packageName !in TARGET_PACKAGES) return
 
         val notification = sbn.notification ?: return
         val extras = notification.extras ?: return

@@ -153,24 +153,37 @@ ParsedNotification? parseWechatNotification(String text) {
 ///   「【招商银行】您尾号6666的一卡通于05月01日12:30收到转账人民币1000.00元」
 /// 招商银行还款：
 ///   「【招商银行】您尾号8888的信用卡于05月01日12:30还款人民币2000.00元」
+/// 招商银行快捷支付扣款：
+///   「招商银行 您账户9746于05月08日19:03在【财付通-微信支付-拼多多平台商户】发生快捷支付扣款，人民币75.05」
 ParsedNotification? parseBankNotification(String text) {
   // ---------- 金额提取 ----------
-  // 招行格式：消费/支出/收到转账/还款 人民币X.XX元
-  final cmbAmountMatch =
-      RegExp(r'(?:消费|支出|收到转账|还款)人民币([\d.]+)元').firstMatch(text);
-  // 通用格式：消费/支取 RMB X.XX元
-  final genericAmountMatch = RegExp(
-          r'(?:消费|支取)\s*(?:RMB\s*)?([\d.]+)')
-      .firstMatch(text);
-
   String? amountStr;
   bool isIncome = false;
+
+  // 招行格式1：消费/支出/收到转账/还款 人民币X.XX元
+  final cmbAmountMatch =
+      RegExp(r'(?:消费|支出|收到转账|还款)人民币([\d.]+)元').firstMatch(text);
   if (cmbAmountMatch != null) {
     amountStr = cmbAmountMatch.group(1);
-    // 如果是"收到转账"，是收入
     isIncome = text.contains('收到转账');
-  } else if (genericAmountMatch != null) {
-    amountStr = genericAmountMatch.group(1);
+  }
+
+  // 招行格式2：发生快捷支付扣款，人民币X.XX（无「元」字结尾）
+  if (amountStr == null) {
+    final quickPayMatch =
+        RegExp(r'发生快捷支付扣款，人民币([\d.]+)').firstMatch(text);
+    if (quickPayMatch != null) {
+      amountStr = quickPayMatch.group(1);
+    }
+  }
+
+  // 通用格式：消费/支取 RMB X.XX元
+  if (amountStr == null) {
+    final genericAmountMatch =
+        RegExp(r'(?:消费|支取)\s*(?:RMB\s*)?([\d.]+)').firstMatch(text);
+    if (genericAmountMatch != null) {
+      amountStr = genericAmountMatch.group(1);
+    }
   }
 
   if (amountStr == null) return null;
@@ -210,9 +223,22 @@ ParsedNotification? parseBankNotification(String text) {
   }
 
   // ---------- 商户/交易对方提取 ----------
-  // 部分银行通知含商户名，如 "-XX超市"
-  final merchantMatch = RegExp(r'[-—]([^-—\s]{2,10})$').firstMatch(text);
-  final counterparty = merchantMatch?.group(1) ?? '';
+  // 优先取 【商户名】（快捷支付扣款格式），跳过「【招商银行】」这类银行标识
+  String counterparty = '';
+  final bracketMatch = RegExp(r'【([^】]+)】').firstMatch(text);
+  if (bracketMatch != null) {
+    final content = bracketMatch.group(1)!;
+    if (!content.contains('银行')) {
+      counterparty = content;
+    }
+  }
+  // 后备：取末尾短线商户名，如 "-XX超市"
+  if (counterparty.isEmpty) {
+    final merchantMatch = RegExp(r'[-—]([^-—\s]{2,10})$').firstMatch(text);
+    if (merchantMatch != null) {
+      counterparty = merchantMatch.group(1)!;
+    }
+  }
 
   return ParsedNotification(
     source: 'bank',
@@ -238,15 +264,16 @@ class NotificationImportRepository {
     required List<ParsedNotification> notifications,
     String? defaultCategoryId,
   }) async {
-    final body = <String, dynamic>{
-      'notifications': notifications.map((n) => n.toJson()).toList(),
-    };
+    // FastAPI 把 list[ParsedNotification] 当直接 body 接收
+    // default_category_id 是查询参数
+    final queryParams = <String, dynamic>{};
     if (defaultCategoryId != null && defaultCategoryId.isNotEmpty) {
-      body['default_category_id'] = defaultCategoryId;
+      queryParams['default_category_id'] = defaultCategoryId;
     }
     final response = await _client.dio.post(
       ApiConfig.importEndpoint,
-      data: body,
+      data: notifications.map((n) => n.toJson()).toList(),
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
 
     final data = response.data as Map<String, dynamic>;
