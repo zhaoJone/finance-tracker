@@ -35,7 +35,7 @@ async def get_rule_repo(db: DBSession) -> CategoryMatchRuleRepository:
 @router.post("/import")
 async def import_notifications(
     notifications: list[ParsedNotification],
-    default_category_id: UUID,
+    default_category_id: UUID | None = None,
     tx_repo: TransactionRepository = Depends(get_tx_repo),
     category_repo: CategoryRepository = Depends(get_category_repo),
     rule_repo: CategoryMatchRuleRepository = Depends(get_rule_repo),
@@ -47,15 +47,16 @@ async def import_notifications(
     - notifications: 解析后的通知列表（每条可带 category_id）
     - default_category_id: 未指定分类时的默认值
     """
-    # 验证 default_category_id 属于当前用户
-    category = await category_repo.get(default_category_id, user_id=str(user.id))
-    if category is None:
-        return error_response(
-            error="Category not found",
-            code="CATEGORY_NOT_FOUND",
-            detail="default_category_id does not belong to current user",
-            status_code=400,
-        )
+    # Validate default_category_id if provided
+    if default_category_id is not None:
+        category = await category_repo.get(default_category_id, user_id=str(user.id))
+        if category is None:
+            return error_response(
+                error="Category not found",
+                code="CATEGORY_NOT_FOUND",
+                detail="default_category_id does not belong to current user",
+                status_code=400,
+            )
 
     service = NotificationService(tx_repo, category_repo, rule_repo)
     result = await service.import_notifications(

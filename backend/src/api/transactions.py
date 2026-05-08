@@ -77,7 +77,7 @@ async def create_transaction(
         user_id=user.id,
         amount=body.amount,
         category_id=body.category_id,
-        note=body.note,
+        note=body.note or "",
         date=body.date,
         type=body.type,
         created_at=now,

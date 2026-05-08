@@ -33,7 +33,7 @@ class CategoriesRepository {
   }
 
   Future<Category> updateCategory(String id, Category category) async {
-    final response = await _client.dio.patch(
+    final response = await _client.dio.put(
       '${ApiConfig.categoriesEndpoint}/$id',
       data: category.toJson(),
     );

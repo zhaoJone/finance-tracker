@@ -59,13 +59,15 @@ class TransactionCreate {
     this.note,
   });
 
-  Map<String, dynamic> toJson() => {
-        'amount': amount,
-        'type': type,
-        'date': date,
-        'category_id': categoryId,
-        'note': note,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'amount': amount,
+      'type': type,
+      'date': date,
+      if (categoryId != null) 'category_id': categoryId,
+      if (note != null && note!.isNotEmpty) 'note': note,
+    };
+  }
 }
 
 class TransactionUpdate {

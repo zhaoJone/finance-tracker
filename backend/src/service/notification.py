@@ -55,14 +55,15 @@ class NotificationService:
         self,
         notifications: list[ParsedNotification],
         user_id_str: str,
-        default_category_id: UUID,
-    ) -> dict[int, UUID]:
+        default_category_id: UUID | None = None,
+    ) -> dict[int, UUID | None]:
         """Pre-compute category_id for each notification index.
         
         优先级：
         1. notification.category_id（移动端指定）
         2. 规则匹配（keyword → category_id）
         3. default_category_id（API 参数）
+        4. None（无默认分类）
         """
         # Collect unique counterparties for batch matching
         unique_keywords = set()
@@ -79,14 +80,16 @@ class NotificationService:
                     matched_rules[kw] = rule.category_id
 
         # Build result map
-        result: dict[int, UUID] = {}
+        result: dict[int, UUID | None] = {}
         for i, n in enumerate(notifications):
+            assigned: UUID | None
             if n.category_id is not None:
-                result[i] = n.category_id
+                assigned = n.category_id
             elif n.counterparty in matched_rules:
-                result[i] = matched_rules[n.counterparty]
+                assigned = matched_rules[n.counterparty]
             else:
-                result[i] = default_category_id
+                assigned = default_category_id
+            result[i] = assigned
 
         return result
 
@@ -94,7 +97,7 @@ class NotificationService:
         self,
         notifications: list[ParsedNotification],
         user_id: UUID,
-        default_category_id: UUID,
+        default_category_id: UUID | None = None,
     ) -> dict[str, Any]:
         """
         批量导入通知，自动过滤已存在的（去重）。
@@ -124,6 +127,9 @@ class NotificationService:
                 continue
 
             category_id = cat_ids[i]
+            if category_id is None:
+                errors.append(f"Notification {i} has no category_id and no default")
+                continue
 
             try:
                 tx = Transaction(

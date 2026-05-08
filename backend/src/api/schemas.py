@@ -13,7 +13,7 @@ class TransactionCreate(BaseModel):
 
     amount: int = Field(..., description="Amount in cents (fen)", gt=0)
     category_id: UUID
-    note: str = ""
+    note: str | None = None
     date: date
     type: Literal["income", "expense"]
 
