@@ -81,7 +81,7 @@ class NotificationImportBloc
 
     if (cloudResult.isParsed) {
       _notifications.add(cloudResult.parsed!);
-      _applyMatchRules();
+      await _applyMatchRules();
     } else {
       // 解析失败或网络错误 → 标记为未解析，显示在列表中
       _notifications.add(ParsedNotification(

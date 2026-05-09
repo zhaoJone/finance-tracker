@@ -1,8 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:label="finance_tracker_app"
@@ -30,12 +28,11 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- 通知监听服务 - 前台保活，防止国产 ROM 杀后台 -->
+        <!-- 通知监听服务 - 捕获支付宝/微信/银行支付通知 -->
         <service
             android:name=".NotificationListener"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-            android:exported="true"
-            android:foregroundServiceType="dataSync">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>

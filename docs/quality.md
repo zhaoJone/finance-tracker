@@ -35,7 +35,7 @@
 |---|---|---|---|---|
 | core/（ApiClient、injection） | - | ✅ | ✅ 已建立 | 2026-04-16 |
 | auth/（登录/注册） | - | ✅ | ✅ 已建立，UI 升级—使用 AppInput/AppButton 设计系统，支持注册（邮箱+密码+确认密码校验） | 2026-04-30 |
-| notifications/（通知导入） | ✅ 5/5 | ✅ | ✅ P0: 移除本地解析器（-200行Dart），改为纯云端API解析，新增 CloudParseResult 模型 | 2026-05-09 |
+|| notifications/（通知导入） | ✅ 5/5 | ✅ | ✅ v1.4.3: 简化为 EventChannel+缓存回放，移除前台 Service 保活（消除 Android 14+ 闪退根源） | 2026-05-09 |
 | theme/（设计系统） | - | ✅ | ✅ 黑白灰设计系统 | 2026-04-29 |
 | widgets/（通用组件） | - | ✅ | ✅ AppCard/Button/Input/Badge/EmptyState/BottomNav（中文标签，Android 系统导航栏自适应 padding） | 2026-04-30 |
 | home/（首页仪表盘） | - | ✅ | ✅ 左色条卡片 + 下拉刷新 + 月份导航 | 2026-04-30 |

@@ -38,6 +38,19 @@
 - 移动端新增：`CloudParseResult` 模型、`parseViaCloud` API 调用
 - 后端 `NotificationService` 复用 `parsers.facade.parse_notification()`
 
+### 6. 通知监听架构简化 — 移除前台 Service 保活（2026-05-09）
+- **问题：** 前台 Service (`startForeground`) 在 Android 14+ 上不稳定，多次修复（3+ 次）后仍有闪退和监听失效问题
+- **方案：** 回退持续监听功能，去掉前台 Service 保活机制，回到简单的 EventChannel + 缓存回放架构
+- **变更内容：**
+  - `NotificationListener.kt`：移除 `onStartCommand`、`START_STICKY`、`startForegroundService`、`startForeground`、前台通知渠道
+  - `notification_listener_bridge.dart`：移除 `_serviceChannel` MethodChannel
+  - `MainActivity.kt`：移除 `SERVICE_CHANNEL` MethodChannel 注册
+  - `AndroidManifest.xml`：移除 `foregroundServiceType="dataSync"`、`FOREGROUND_SERVICE` 权限
+- **保留：** 缓存回放（`flushCached`）、指纹去重、requestRebind 自动重连（无副作用）、broad package 检测（不限于支付宝/微信）、updateCallback 修复页面重建回掉泄漏
+- **附加修复：**
+  - BLoC `_applyMatchRules()` 异步漏发射 Bug（缺少 `await` 导致 emit 后规则才应用、UI 不更新）
+  - 关键词检测范围从 `title + text` 恢复为 `fullContent`（`title + text + bigText`），防止 EXTRA_BIG_TEXT 中的关键词被漏检
+
 ## API 端点
 
 详见 `docs/api.md`。
