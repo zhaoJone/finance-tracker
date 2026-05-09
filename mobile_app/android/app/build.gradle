@@ -42,3 +42,8 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // 通知缓存加密 — 保护支付宝/微信通知原文等敏感金融数据
+    implementation 'androidx.security:security-crypto:1.0.0'
+}

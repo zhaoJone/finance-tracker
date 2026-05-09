@@ -15,16 +15,18 @@ import 'notification_import_state.dart';
 class _MerchantGroup {
   final String counterparty;
   final List<int> indices;
-  int get totalAmount => indices.fold(0, (sum, i) => sum + _allNotifications[i].amount);
-  ParsedNotification get first => _allNotifications[indices.first];
-  String? get categoryId => first.categoryId;
-
-  static List<ParsedNotification> _allNotifications = [];
 
   _MerchantGroup({required this.counterparty, required this.indices});
 
+  int totalAmount(List<ParsedNotification> all) =>
+      indices.fold(0, (sum, i) => sum + all[i].amount);
+
+  ParsedNotification first(List<ParsedNotification> all) => all[indices.first];
+
+  String? categoryId(List<ParsedNotification> all) => first(all).categoryId;
+
+  /// 按商户名分组（P0: 移除 static 字段，全部通过参数传入）
   static List<_MerchantGroup> group(List<ParsedNotification> notifications) {
-    _allNotifications = notifications;
     final map = <String, List<int>>{};
     for (var i = 0; i < notifications.length; i++) {
       final cp = notifications[i].counterparty;
@@ -35,7 +37,11 @@ class _MerchantGroup {
       }
     }
     return map.entries.map((e) => _MerchantGroup(counterparty: e.key, indices: e.value)).toList()
-      ..sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
+      ..sort((a, b) {
+        final aTotal = a.totalAmount(notifications);
+        final bTotal = b.totalAmount(notifications);
+        return bTotal.compareTo(aTotal);
+      });
   }
 }
 
@@ -60,23 +66,30 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
   void initState() {
     super.initState();
     _isListening = _bridge.isListening;
+    if (_isListening) {
+      // 桥仍在运行，但回调指向旧页面 → 必须更新
+      _bridge.updateCallback(onNotification: _onNotificationReceived);
+    }
     context.read<NotificationImportBloc>().add(const NotificationInit());
+  }
+
+  /// 通知到达时的统一处理
+  void _onNotificationReceived(String source, String rawText) {
+    if (!mounted) return;
+    setState(() {
+      _recentNotifications.insert(0, {'source': source, 'text': rawText});
+      if (_recentNotifications.length > 20) {
+        _recentNotifications.removeLast();
+      }
+    });
+    context.read<NotificationImportBloc>().add(
+          NotificationIncoming(source: source, rawText: rawText),
+        );
   }
 
   Future<void> _startListening() async {
     await _bridge.startListening(
-      onNotification: (source, rawText) {
-        if (!mounted) return;
-        setState(() {
-          _recentNotifications.insert(0, {'source': source, 'text': rawText});
-          if (_recentNotifications.length > 20) {
-            _recentNotifications.removeLast();
-          }
-        });
-        context.read<NotificationImportBloc>().add(
-              NotificationIncoming(source: source, rawText: rawText),
-            );
-      },
+      onNotification: _onNotificationReceived,
     );
     if (mounted) setState(() => _isListening = true);
   }
@@ -297,9 +310,9 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
             delegate: SliverChildBuilderDelegate(
               (context, groupIndex) {
                 final group = groups[groupIndex];
-                final hasCategorySet = group.categoryId != null;
+                final hasCategorySet = group.categoryId(parsed) != null;
                 final categoryName = hasCategorySet
-                    ? categories.where((c) => c.id == group.categoryId!).firstOrNull?.name ?? '已选'
+                    ? categories.where((c) => c.id == group.categoryId(parsed)!).firstOrNull?.name ?? '已选'
                     : '未选';
                 final ruleSaved = _savedRules.contains(group.counterparty);
 
@@ -314,9 +327,9 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
                         Row(
                           children: [
                             Icon(
-                              _sourceIcon(group.first.source),
+                              _sourceIcon(group.first(parsed).source),
                               size: 18,
-                              color: _sourceColor(group.first.source),
+                              color: _sourceColor(group.first(parsed).source),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -325,8 +338,9 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
                                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.gray900),
                               ),
                             ),
+                            // ignore: prefer_const_constructors
                             Text(
-                              '¥${(group.totalAmount / 100).toStringAsFixed(2)}',
+'¥\${(group.totalAmount(parsed) / 100).toStringAsFixed(2)}',
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.gray900),
                             ),
                             if (group.indices.length > 1)
@@ -347,7 +361,7 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
                           children: [
                             Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: hasCategorySet ? group.categoryId : null,
+                                value: hasCategorySet ? group.categoryId(parsed) : null,
                                 decoration: InputDecoration(
                                   labelText: '分类',
                                   border: OutlineInputBorder(
@@ -388,7 +402,7 @@ class _NotificationImportPageState extends State<NotificationImportPage> {
                                     context.read<NotificationImportBloc>().add(
                                           NotificationSaveRule(
                                             keyword: group.counterparty,
-                                            categoryId: group.categoryId!,
+                                            categoryId: group.categoryId(parsed)!,
                                           ),
                                         );
                                     setState(() => _savedRules.add(group.counterparty));

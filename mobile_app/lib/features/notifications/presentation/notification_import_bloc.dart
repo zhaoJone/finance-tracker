@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../categories/data/categories_models.dart';
 import '../../categories/data/categories_repository.dart';
@@ -16,6 +17,8 @@ class NotificationImportBloc
   final List<ParsedNotification> _notifications = [];
   List<Category> _categories = [];
   final String _defaultCategoryId = '';
+  /// P2: 缓存匹配规则，每次通知到达时不再重复请求
+  List<CategoryMatchRule>? _cachedRules;
 
   NotificationImportBloc(
     this._repository,
@@ -36,6 +39,9 @@ class NotificationImportBloc
     NotificationInit event,
     Emitter<NotificationImportState> emit,
   ) async {
+    // 进入页面时重置规则缓存，确保新添加的规则能立即生效
+    _cachedRules = null;
+    
     // Load categories
     try {
       _categories = await _categoriesRepo.listCategories();
@@ -51,9 +57,11 @@ class NotificationImportBloc
   }
 
   /// 尝试用匹配规则自动分配分类
+  /// P2: 缓存规则列表，避免每次通知到达都重复请求
   Future<void> _applyMatchRules() async {
     try {
-      final rules = await _ruleRepo.list();
+      _cachedRules ??= await _ruleRepo.list();
+      final rules = _cachedRules!;
       if (rules.isEmpty) return;
       for (final n in _notifications) {
         if (n.categoryId != null) continue;
@@ -196,14 +204,18 @@ class NotificationImportBloc
   }
 
   String _extractError(dynamic e) {
-    if (e.toString().contains('401')) {
-      return '未登录或登录已过期';
-    }
-    if (e.toString().contains('404') || e.toString().contains('CATEGORY_NOT_FOUND')) {
-      return '分类不存在，请先创建分类';
-    }
-    if (e.toString().contains('connection')) {
-      return '无法连接服务器';
+    // P2: 使用类型检查而非字符串模式匹配 — 避免误匹配
+    if (e is DioException) {
+      if (e.response?.statusCode == 401) {
+        return '未登录或登录已过期';
+      }
+      if (e.response?.statusCode == 404 || e.toString().contains('CATEGORY_NOT_FOUND')) {
+        return '分类不存在，请先创建分类';
+      }
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.connectionError) {
+        return '无法连接服务器';
+      }
     }
     return '导入失败: ${e.toString()}';
   }

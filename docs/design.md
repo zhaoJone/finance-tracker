@@ -46,10 +46,18 @@
   - `notification_listener_bridge.dart`：移除 `_serviceChannel` MethodChannel
   - `MainActivity.kt`：移除 `SERVICE_CHANNEL` MethodChannel 注册
   - `AndroidManifest.xml`：移除 `foregroundServiceType="dataSync"`、`FOREGROUND_SERVICE` 权限
-- **保留：** 缓存回放（`flushCached`）、指纹去重、requestRebind 自动重连（无副作用）、broad package 检测（不限于支付宝/微信）、updateCallback 修复页面重建回掉泄漏
-- **附加修复：**
-  - BLoC `_applyMatchRules()` 异步漏发射 Bug（缺少 `await` 导致 emit 后规则才应用、UI 不更新）
-  - 关键词检测范围从 `title + text` 恢复为 `fullContent`（`title + text + bigText`），防止 EXTRA_BIG_TEXT 中的关键词被漏检
+- **保留：** 缓存回放（`flushCached`）、指纹去重、requestRebind 自动重连、broad package 检测、updateCallback
+- **附加修复：** BLoC `_applyMatchRules()` await 缺失、关键词检测范围恢复为 `fullContent`
+
+### 7. 通知监听安全加固与代码质量提升（2026-05-09）
+- **加密缓存（P0）：** 使用 `EncryptedSharedPreferences`（AES256-GCM）加密存储通知原文，阻止 root 设备或恶意 App 读取明文金融数据
+- **日志脱敏（P0）：** `Log.d` 只输出前 16 字符，不暴露完整交易信息（商户名、金额等）
+- **静态泄露修复（P0）：** `_MerchantGroup._allNotifications` 静态字段 → 改为方法参数传入
+- **指纹淘汰修复（P1）：** `Set.first` → `Queue<String>` + `Set<String>` 双结构，确保淘汰最早指纹
+- **Service 销毁保护（P1）：** `onDestroy` 中关闭 `IO_EXECUTOR.shutdownNow()`
+- **指纹升级（P2）：** MD5 → SHA-256
+- **匹配规则缓存（P2）：** 规则列表缓存到 BLoC，避免每条通知都重新请求
+- **类型安全错误处理（P2）：** `_extractError` 从字符串模式匹配改为 `DioException` 类型检查
 
 ## API 端点
 

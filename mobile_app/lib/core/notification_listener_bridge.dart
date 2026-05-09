@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/services.dart';
 
@@ -32,7 +33,10 @@ class NotificationListenerBridge {
   bool get isListening => _subscription != null;
 
   /// 已处理的指纹集合，用于 Flutter 层去重
+  /// P1: 使用 Queue+Set 双结构确保淘汰的是最早加入的指纹，
+  /// 而非 LinkedHashSet 的哈希序第一个元素。
   final Set<String> _processedFingerprints = {};
+  final Queue<String> _fingerprintQueue = Queue<String>();
 
   /// 当前回调引用
   void Function(String source, String rawText)? _onNotification;
@@ -100,9 +104,12 @@ class NotificationListenerBridge {
     if (fingerprint.isNotEmpty) {
       if (_processedFingerprints.contains(fingerprint)) return;
       _processedFingerprints.add(fingerprint);
+      _fingerprintQueue.addLast(fingerprint);
       // 控制集合大小，防止内存泄漏（最多保留 2000 条指纹）
-      if (_processedFingerprints.length > 2000) {
-        _processedFingerprints.remove(_processedFingerprints.first);
+      // P1: 用 Queue 确保淘汰的是最早加入的，而非 Set 的哈希序第一个
+      if (_fingerprintQueue.length > 2000) {
+        final oldest = _fingerprintQueue.removeFirst();
+        _processedFingerprints.remove(oldest);
       }
     }
 
@@ -121,5 +128,6 @@ class NotificationListenerBridge {
   void dispose() {
     stopListening();
     _processedFingerprints.clear();
+    _fingerprintQueue.clear();
   }
 }
