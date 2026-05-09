@@ -20,6 +20,7 @@ import 'package:flutter/services.dart';
 class NotificationListenerBridge {
   static const _eventChannel = EventChannel('com.financetracker/notifications');
   static const _cacheChannel = MethodChannel('com.financetracker/notification_cache');
+  static const _serviceChannel = MethodChannel('com.financetracker/notification_service');
 
   StreamSubscription<dynamic>? _subscription;
 
@@ -40,9 +41,10 @@ class NotificationListenerBridge {
   /// 开始监听通知
   ///
   /// 顺序：
-  ///   1. 先订阅 EventChannel（实时流）
-  ///   2. 再拉取 Native 缓存（回放被杀期间错过的通知）
-  ///   3. 后续实时推送和缓存回放统一经过指纹去重
+  ///   1. 先启动 Android 原生服务（前台保活）
+  ///   2. 再订阅 EventChannel（实时流）
+  ///   3. 再拉取 Native 缓存（回放被杀期间错过的通知）
+  ///   4. 后续实时推送和缓存回放统一经过指纹去重
   ///
   /// 每次调用都会取消旧订阅并重新注册，确保回调引用是最新的。
   ///
@@ -56,6 +58,13 @@ class NotificationListenerBridge {
 
     // 取消旧订阅，确保 EventChannel 重新绑定到当前 Flutter 引擎
     _subscription?.cancel();
+
+    // ── Step 0: 启动原生服务（前台保活） ──
+    try {
+      await _serviceChannel.invokeMethod('startService');
+    } catch (_) {
+      // 服务启动失败不影响后续逻辑
+    }
 
     // ── Step 1: 先开实时流 ──
     _subscription = _eventChannel.receiveBroadcastStream().listen(

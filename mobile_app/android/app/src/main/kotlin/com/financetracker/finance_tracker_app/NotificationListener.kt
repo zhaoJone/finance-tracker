@@ -1,7 +1,10 @@
 package com.financetracker.finance_tracker_app
 
 import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -19,6 +22,9 @@ import java.util.concurrent.Executors
  * 双重保障：无论 EventChannel 是否连通，先写入本地缓存。
  * Flutter 恢复时通过 MethodChannel 拉取缓存历史，回放后再清空。
  *
+ * 前台保活：连接后立即 startForeground() 显示常驻通知栏，
+ * 防止国产 ROM（MIUI / EMUI / ColorOS）杀掉后台服务。
+ *
  * 在系统设置中用户需手动授予「通知使用权」：
  *   设置 → 应用 → 特殊权限 → 通知使用权 → 启用 finance-tracker
  *
@@ -32,11 +38,13 @@ class NotificationListener : NotificationListenerService() {
         private const val CHANNEL = "com.financetracker/notifications"
         private const val CACHE_PREFS = "notif_cache"
         private const val MAX_CACHED = 500
+        private const val FOREGROUND_NOTIF_ID = 1001
+        private const val FOREGROUND_CHANNEL_ID = "notification_listener_foreground"
 
         // 通知文本中的关键词，用于过滤出支付类通知
         private val PAYMENT_KEYWORDS = setOf(
             "支付宝", "微信支付", "招商银行", "支出", "收入", "消费",
-            "转账", "收到", "到账", "付款", "还款"
+            "转账", "收到", "到账", "付款", "还款", "扣款", "退款"
         )
 
         // EventChannel sink — 由 Flutter 端初始化时设置
@@ -164,8 +172,53 @@ class NotificationListener : NotificationListenerService() {
         }
     }
 
+    // ─── 前台保活 ─────────────────────────────
+
+    /** 创建通知渠道并启动前台服务 */
+    private fun startForegroundService() {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // 创建前台通知渠道（API 26+ 必需）
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                FOREGROUND_CHANNEL_ID,
+                "通知监听",
+                NotificationManager.IMPORTANCE_LOW  // 低优先级，不在锁屏/顶部弹窗
+            ).apply {
+                description = "保持通知监听服务运行"
+                setShowBadge(false)
+            }
+            nm.createNotificationChannel(channel)
+        }
+
+        // 构建前台通知
+        val notifBuilder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, FOREGROUND_CHANNEL_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this).apply {
+                // Android 8 以下用旧 API
+            }
+        }
+
+        val notification = notifBuilder
+            .setContentTitle("正在监听支付通知")
+            .setContentText("支付宝 / 微信 / 招商银行")
+            .setSmallIcon(android.R.drawable.ic_popup_reminder)
+            .setOngoing(true)  // 不可滑动清除
+            .setPriority(Notification.PRIORITY_MIN)
+            .build()
+
+        startForeground(FOREGROUND_NOTIF_ID, notification)
+        Log.d(TAG, "前台服务已启动")
+    }
+
+    // ─── 生命周期 ─────────────────────────────
+
     override fun onListenerConnected() {
-        Log.d(TAG, "通知监听服务已连接")
+        Log.d(TAG, "通知监听服务已连接 → 启动前台保活")
+        startForegroundService()
+
         // 后台清理过期缓存
         IO_EXECUTOR.execute {
             val prefs = getSharedPreferences(CACHE_PREFS, Context.MODE_PRIVATE)
@@ -174,7 +227,19 @@ class NotificationListener : NotificationListenerService() {
     }
 
     override fun onListenerDisconnected() {
-        Log.d(TAG, "通知监听服务已断开")
+        Log.w(TAG, "通知监听服务已断开 → 尝试自动重连")
+        // 停止前台通知
+        try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Exception) {}
+
+        // 请求系统重新绑定监听服务
+        // 部分 ROM（MIUI）会响应此请求，重新 onListenerConnected()
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                requestRebind(null)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "请求重连失败", e)
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
@@ -217,7 +282,6 @@ class NotificationListener : NotificationListenerService() {
         val fingerprint = notificationFingerprint(packageName, fullContent)
 
         // Step 1: 先写缓存（无条件下都写）
-        // 在 IO 线程写入，避免阻塞主线程
         if (!isNotificationCached(this, fingerprint)) {
             IO_EXECUTOR.execute {
                 saveNotification(this, fingerprint, source, fullContent, packageName)

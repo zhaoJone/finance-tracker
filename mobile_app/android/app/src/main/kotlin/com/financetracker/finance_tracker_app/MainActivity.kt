@@ -15,6 +15,7 @@ class MainActivity : FlutterActivity() {
         private const val NOTIFICATION_CHANNEL = "com.financetracker/notifications"
         private const val SETTINGS_CHANNEL = "com.financetracker/settings"
         private const val CACHE_CHANNEL = "com.financetracker/notification_cache"
+        private const val SERVICE_CHANNEL = "com.financetracker/notification_service"
     }
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
@@ -48,6 +49,29 @@ class MainActivity : FlutterActivity() {
                         result.success(cached)
                     } catch (e: Exception) {
                         result.error("FLUSH_FAILED", "拉取缓存通知失败", e.message)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // ── MethodChannel: 通知监听服务管理 ──
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            SERVICE_CHANNEL
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "startService" -> {
+                    try {
+                        val intent = Intent(this, NotificationListener::class.java)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("START_FAILED", "启动监听服务失败", e.message)
                     }
                 }
                 else -> result.notImplemented()
