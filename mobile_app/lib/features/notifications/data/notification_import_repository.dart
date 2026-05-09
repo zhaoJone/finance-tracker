@@ -168,12 +168,16 @@ ParsedNotification? parseBankNotification(String text) {
     isIncome = text.contains('收到转账');
   }
 
-  // 招行格式2：发生快捷支付扣款，人民币X.XX（无「元」字结尾）
+  // 招行格式2：发生快捷支付扣款/退款，人民币X.XX（无「元」字结尾）
   if (amountStr == null) {
     final quickPayMatch =
-        RegExp(r'发生快捷支付扣款，人民币([\d.]+)').firstMatch(text);
+        RegExp(r'发生快捷支付(?:扣款|退款)，人民币([\d.]+)').firstMatch(text);
     if (quickPayMatch != null) {
       amountStr = quickPayMatch.group(1);
+      // 退款记作收入
+      if (text.contains('退款')) {
+        isIncome = true;
+      }
     }
   }
 

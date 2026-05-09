@@ -155,6 +155,16 @@ void main() {
       expect(result.counterparty, contains('微信转账'));
     });
 
+    test('招行快捷支付退款', () {
+      final result = parseBankNotification(
+          '招商银行 您账户9746于05月09日03:12在【财付通-微信支付-智能充电】发生快捷支付退款，人民币4.34');
+      expect(result, isNotNull);
+      expect(result!.amount, equals(434));
+      expect(result.source, equals('bank'));
+      expect(result.type, equals('income'));
+      expect(result.counterparty, contains('智能充电'));
+    });
+
     test('未知格式返回 null', () {
       final result = parseBankNotification('这是一条无关短信');
       expect(result, isNull);
