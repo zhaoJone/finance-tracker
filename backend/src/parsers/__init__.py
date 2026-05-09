@@ -1,8 +1,7 @@
-"""
-通知解析器 - 策略模式实现。
-"""
+"""通知解析器 - 策略模式实现。"""
 from src.parsers.alipay import AlipayParser
+from src.parsers.bank import BankParser
 from src.parsers.base import NotificationParser
 from src.parsers.wechat import WeChatParser
 
-__all__ = ["AlipayParser", "NotificationParser", "WeChatParser"]
+__all__ = ["AlipayParser", "BankParser", "NotificationParser", "WeChatParser"]

@@ -1,17 +1,18 @@
-"""
-NotificationService - 聚合通知解析器，处理去重与交易创建。
-"""
+"""NotificationService - 聚合通知解析器，处理去重与交易创建。"""
+from __future__ import annotations
+
 import hashlib
 from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from src.parsers import AlipayParser, NotificationParser, WeChatParser
 from src.repository import CategoryRepository, TransactionRepository
 from src.repository.category_match_rule import CategoryMatchRuleRepository
 from src.schemas import Transaction
 from src.schemas.notification import ParsedNotification
 from src.service.category_matcher import CategoryMatcher
+
+from src.parsers.facade import parse_notification
 
 
 class NotificationService:
@@ -26,18 +27,10 @@ class NotificationService:
         self._tx_repo = tx_repo
         self._category_repo = category_repo
         self._matcher = CategoryMatcher(rule_repo) if rule_repo else None
-        self._parsers: list[NotificationParser] = [
-            AlipayParser(),
-            WeChatParser(),
-        ]
 
     def parse(self, raw_text: str) -> ParsedNotification | None:
         """尝试所有解析器解析通知文本。"""
-        for parser in self._parsers:
-            result = parser.parse(raw_text)
-            if result is not None:
-                return result
-        return None
+        return parse_notification(raw_text)
 
     def _make_dedup_key(self, notification: ParsedNotification) -> str:
         """生成去重键：优先用 trade_no，否则用关键字段的 SHA256 哈希。"""

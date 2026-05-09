@@ -63,3 +63,24 @@ class ImportResult {
     );
   }
 }
+
+/// 云端解析结果（与后端 RawParseResponseData 对齐）
+class CloudParseResult {
+  final ParsedNotification? parsed;
+  final String? sourceHint;
+
+  const CloudParseResult({this.parsed, this.sourceHint});
+
+  factory CloudParseResult.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) return const CloudParseResult();
+    return CloudParseResult(
+      parsed: data['parsed'] != null
+          ? ParsedNotification.fromJson(data['parsed'] as Map<String, dynamic>)
+          : null,
+      sourceHint: data['source_hint'] as String?,
+    );
+  }
+
+  bool get isParsed => parsed != null;
+}

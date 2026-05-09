@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from src.api.auth import router as auth_router
 from src.api.categories import router as categories_router
 from src.api.imports import router as imports_router
+from src.api.notifications import router as notifications_router
 from src.api.responses import success_response  # noqa: F401
 from src.api.rules import router as rules_router
 from src.api.stats import router as stats_router
@@ -27,6 +28,7 @@ app = FastAPI(lifespan=lifespan, title="Finance Tracker API", version="1.0.0")
 app.include_router(transactions_router)
 app.include_router(imports_router)
 app.include_router(rules_router)
+app.include_router(notifications_router)
 app.include_router(categories_router)
 app.include_router(stats_router)
 app.include_router(auth_router)

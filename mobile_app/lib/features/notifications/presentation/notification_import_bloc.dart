@@ -1,4 +1,4 @@
-import 'package:crypto/crypto.dart';
+import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../categories/data/categories_models.dart';
@@ -69,16 +69,21 @@ class NotificationImportBloc
     }
   }
 
-  void _onIncoming(
+  Future<void> _onIncoming(
     NotificationIncoming event,
     Emitter<NotificationImportState> emit,
-  ) {
-    final parsed = _repository.parseNotification(
+  ) async {
+    // 唯一路径：云端解析（无本地降级）
+    final cloudResult = await _repository.parseViaCloud(
       rawText: event.rawText,
-      source: event.source,
+      sourceHint: event.source,
     );
-    if (parsed == null) {
-      // 解析失败 → 保留原文供用户查看，标记 isUnparsed
+
+    if (cloudResult.isParsed) {
+      _notifications.add(cloudResult.parsed!);
+      _applyMatchRules();
+    } else {
+      // 解析失败或网络错误 → 标记为未解析，显示在列表中
       _notifications.add(ParsedNotification(
         source: event.source,
         rawText: event.rawText,
@@ -86,13 +91,9 @@ class NotificationImportBloc
         type: 'expense',
         counterparty: '',
         timestamp: DateTime.now(),
-        tradeNo: _sha256(event.rawText),
+        tradeNo: '',
         isUnparsed: true,
       ));
-    } else {
-      _notifications.add(parsed);
-      // Try match rules
-      _applyMatchRules();
     }
 
     emit(NotificationImportLoaded(
@@ -206,8 +207,4 @@ class NotificationImportBloc
     }
     return '导入失败: ${e.toString()}';
   }
-
-  /// 用原始文本生成唯一指纹，用于前端去重
-  static String _sha256(String input) =>
-      sha256.convert(input.codeUnits).toString();
 }

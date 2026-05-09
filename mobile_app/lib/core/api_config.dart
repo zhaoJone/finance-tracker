@@ -30,4 +30,5 @@ class ApiConfig {
   static const String importEndpoint = '/transactions/import';
   static const String categoriesEndpoint = '/categories';
   static const String matchRulesEndpoint = '/category-match-rules';
+  static const String rawParseEndpoint = '/notifications/raw-parse';
 }
